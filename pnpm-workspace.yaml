@@ -3,3 +3,9 @@ packages:
   - "packages/*"
   - "packages/config/*"
   - "modules/*"
+allowBuilds:
+  '@scarf/scarf': true
+  esbuild: true
+  msgpackr-extract: true
+  sharp: true
+  unrs-resolver: true
