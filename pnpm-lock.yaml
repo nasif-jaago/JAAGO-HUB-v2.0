@@ -315,6 +315,9 @@ importers:
       '@jaago/config-typescript':
         specifier: workspace:*
         version: link:../config/typescript
+      '@types/ioredis-mock':
+        specifier: ^8.2.8
+        version: 8.2.8(ioredis@5.11.1(supports-color@8.1.1))
       '@types/node':
         specifier: ^22.15.32
         version: 22.20.1

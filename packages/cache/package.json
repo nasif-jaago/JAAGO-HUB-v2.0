@@ -19,6 +19,7 @@
   },
   "devDependencies": {
     "@jaago/config-typescript": "workspace:*",
+    "@types/ioredis-mock": "^8.2.8",
     "@types/node": "^22.15.32",
     "ioredis-mock": "^8.9.0",
     "rimraf": "^6.0.1",
