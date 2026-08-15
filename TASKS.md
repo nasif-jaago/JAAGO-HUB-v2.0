@@ -83,11 +83,11 @@
   - [x] First migration (trivial table with RLS)
   - [x] ✓ Checkpoint: trivial table migrates up/down; unbounded query throws
 
-- [ ] **Step 1.7** `packages/cache` + `packages/queue` + `packages/events`
-  - [ ] Redis client + namespaces/tags/TTL/SWR/locks
-  - [ ] BullMQ setup + job base + idempotency + DLQ
-  - [ ] In-proc + Redis Streams event bus + outbox pattern
-  - [ ] ✓ Checkpoint: demo job enqueues/runs/dedupes; event round-trips via outbox
+- [x] **Step 1.7** `packages/cache` + `packages/queue` + `packages/events`
+  - [x] Redis client + namespaces/tags/TTL/SWR/locks
+  - [x] BullMQ setup + job base + idempotency + DLQ
+  - [x] In-proc + Redis Streams event bus + outbox pattern
+  - [x] ✓ Checkpoint: demo job enqueues/runs/dedupes; event round-trips via outbox
 
 - [ ] **Step 1.8** Scaffold `apps/api` (NestJS/Fastify)
   - [ ] Global guards: auth, permission, tenant-context
@@ -231,3 +231,4 @@ Top 3 for immediate attention:
 | 2026-08-16 | Step 1.4 | packages/observability health probes (DB, Redis, Queue, Storage), Tracer, SystemMetricsCollector, 9 unit tests passing |
 | 2026-08-16 | Step 1.5 | packages/security SecretManager, envelope encryption (AES-256-GCM), webhook HMAC signer, boot env validator, 13 unit tests passing |
 | 2026-08-16 | Step 1.6 | packages/database Drizzle ORM schema, BaseRepository with unbounded query prevention, RLS migration, 8 unit tests passing |
+| 2026-08-16 | Step 1.7 | packages/cache, packages/queue, packages/events (Redis locks, BullMQ queue manager, EventBus & Outbox publisher, 10 unit tests passing) |

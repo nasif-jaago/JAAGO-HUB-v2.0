@@ -307,10 +307,20 @@ importers:
         version: 3.2.7(@types/node@22.20.1)(jiti@1.21.7)(supports-color@8.1.1)(terser@5.50.0)(tsx@4.23.12)
 
   packages/cache:
+    dependencies:
+      ioredis:
+        specifier: ^5.6.1
+        version: 5.11.1(supports-color@8.1.1)
     devDependencies:
       '@jaago/config-typescript':
         specifier: workspace:*
         version: link:../config/typescript
+      '@types/node':
+        specifier: ^22.15.32
+        version: 22.20.1
+      ioredis-mock:
+        specifier: ^8.9.0
+        version: 8.13.1(@types/ioredis-mock@8.2.8(ioredis@5.11.1(supports-color@8.1.1)))(ioredis@5.11.1(supports-color@8.1.1))
       rimraf:
         specifier: ^6.0.1
         version: 6.1.3
@@ -379,10 +389,20 @@ importers:
         version: 3.2.7(@types/node@22.20.1)(jiti@1.21.7)(supports-color@8.1.1)(terser@5.50.0)(tsx@4.23.12)
 
   packages/events:
+    dependencies:
+      '@jaago/logger':
+        specifier: workspace:*
+        version: link:../logger
+      '@jaago/shared-types':
+        specifier: workspace:*
+        version: link:../shared-types
     devDependencies:
       '@jaago/config-typescript':
         specifier: workspace:*
         version: link:../config/typescript
+      '@types/node':
+        specifier: ^22.15.32
+        version: 22.20.1
       rimraf:
         specifier: ^6.0.1
         version: 6.1.3
@@ -471,10 +491,29 @@ importers:
         version: 3.2.7(@types/node@22.20.1)(jiti@1.21.7)(supports-color@8.1.1)(terser@5.50.0)(tsx@4.23.12)
 
   packages/queue:
+    dependencies:
+      '@jaago/cache':
+        specifier: workspace:*
+        version: link:../cache
+      '@jaago/logger':
+        specifier: workspace:*
+        version: link:../logger
+      '@jaago/shared-types':
+        specifier: workspace:*
+        version: link:../shared-types
+      bullmq:
+        specifier: ^5.56.0
+        version: 5.81.3(supports-color@8.1.1)
+      ioredis:
+        specifier: ^5.6.1
+        version: 5.11.1(supports-color@8.1.1)
     devDependencies:
       '@jaago/config-typescript':
         specifier: workspace:*
         version: link:../config/typescript
+      '@types/node':
+        specifier: ^22.15.32
+        version: 22.20.1
       rimraf:
         specifier: ^6.0.1
         version: 6.1.3
@@ -1623,6 +1662,9 @@ packages:
       '@types/node':
         optional: true
 
+  '@ioredis/as-callback@3.0.0':
+    resolution: {integrity: sha512-Kqv1rZ3WbgOrS+hgzJ5xG5WQuhvzzSTRYvNeyPMLOAM78MHSnuKI20JeJGbpuAt//LCuP0vsexZcorqW7kWhJg==}
+
   '@ioredis/commands@1.10.0':
     resolution: {integrity: sha512-UmeW7z4LfctwoQ5wkhVzgq8tXkreED2xZGpX+Bg+zA+WJFZCT6c062AfCK/Dfk81xZnnwdhJCUMkitihRaoC2Q==}
 
@@ -2674,6 +2716,11 @@ packages:
 
   '@types/graceful-fs@4.1.9':
     resolution: {integrity: sha512-olP3sd1qOEe5dXTSaFvQG+02VdRXcdytWLAZsAq1PecU8uqQAhkrnbli7DagjtXKW/Bl7YJbUsa8MPcuc8LHEQ==}
+
+  '@types/ioredis-mock@8.2.8':
+    resolution: {integrity: sha512-Nxr1CXk8NtGVzWQ8WoGCOyo+HARd4CFc/Nt2+ITt3WWLNlj1InW38SzZwOJNqzA38iplrpBFp6Ny4KjPfeI+bA==}
+    peerDependencies:
+      ioredis: ^5
 
   '@types/istanbul-lib-coverage@2.0.6':
     resolution: {integrity: sha512-2QF/t/auWm0lsy8XtKVPG19v3sSOQlJe/YHZgfjb/KBBHOGSV+J2q/S671rcq9uTBrLAXmZpqJiaQbMT+zNU1w==}
@@ -3979,6 +4026,14 @@ packages:
       picomatch:
         optional: true
 
+  fengari-interop@0.1.4:
+    resolution: {integrity: sha512-4/CW/3PJUo3ebD4ACgE1g/3NGEYSq7OQAyETyypsAl/WeySDBbxExikkayNkZzbpgyC9GyJp8v1DU2VOXxNq7Q==}
+    peerDependencies:
+      fengari: ^0.1.0
+
+  fengari@0.1.5:
+    resolution: {integrity: sha512-0DS4Nn4rV8qyFlQCpKK8brT61EUtswynrpfFTcgLErcilBIBskSMQ86fO2WVuybr14ywyKdRjv91FiRZwnEuvQ==}
+
   file-entry-cache@8.0.0:
     resolution: {integrity: sha512-XXTUwCvisa5oacNGRP9SfNtYBNAMi+RPwBFmblZEF7N7swHYQS6/Zfk7SRwx4D5j3CH211YNRco1DEMNVfZCnQ==}
     engines: {node: '>=16.0.0'}
@@ -4212,6 +4267,13 @@ packages:
   internmap@2.0.3:
     resolution: {integrity: sha512-5Hh7Y1wQbvY5ooGgPbDaL5iYLAPzMTUrjMulskHLH6wnv/A+1q5rgEaiuqEjB+oxGXIVZs1FF+R/KPN3ZSQYYg==}
     engines: {node: '>=12'}
+
+  ioredis-mock@8.13.1:
+    resolution: {integrity: sha512-Wsi50AU+cMiI32nAgfwpUaJVBtb4iQdVsOHl9M6R3tePCO/8vGsToCVIG82XWAxN4Se55TZoOzVseu+QngFLyw==}
+    engines: {node: '>=12.22'}
+    peerDependencies:
+      '@types/ioredis-mock': ^8
+      ioredis: ^5
 
   ioredis@5.11.1:
     resolution: {integrity: sha512-ehuGcf94bQXhfagULNXrJdfnWO38v070jxSx/qE87Kjzmu2fU7ro5EFAb+OPituLqgfyuQaym5DlrNydW2sJ9A==}
@@ -5161,6 +5223,10 @@ packages:
     resolution: {integrity: sha512-GDhwkLfywWL2s6vEjyhri+eXmfH6j1L7JE27WhqLeYzoh/A3DBaYGEj2H/HFZCn/kMfim73FXxEJTw06WtxQwg==}
     engines: {node: '>= 14.18.0'}
 
+  readline-sync@1.4.10:
+    resolution: {integrity: sha512-gNva8/6UAe8QYepIQH/jQ2qn91Qj0B9sYjMBBs3QOB8F2CXcKgLxQaJRP76sWVRQt+QU+8fAkCbCvjjMFu7Ycw==}
+    engines: {node: '>= 0.8.0'}
+
   real-require@0.2.0:
     resolution: {integrity: sha512-57frrGM/OCTLqLOAh0mhVA9VBMHd+9U7Zb2THMGdBUoZVOtGbJzjxsYGDJ3A9AYYCP4hn6y1TVbaOfzWtm5GFg==}
     engines: {node: '>= 12.13.0'}
@@ -5407,6 +5473,9 @@ packages:
   sprintf-js@1.0.3:
     resolution: {integrity: sha512-D9cPgkvLlV3t3IzL0D0YLvGA9Ahk4PcvVwUbN0dSGr1aP0Nrt4AEnTUbuGvquEC0mA64Gqt1fzirlRs5ibXx8g==}
 
+  sprintf-js@1.1.3:
+    resolution: {integrity: sha512-Oo+0REFV59/rz3gfJNKQiBlwfHaSESl1pcGyABQsnnIfWOFt6JNj5gCog2U6MLZ//IGYD+nA8nI+mTShREReaA==}
+
   stable-hash@0.0.5:
     resolution: {integrity: sha512-+L3ccpzibovGXFK+Ap/f8LOS0ahMrHTf3xu7mMLSpEGU0EO9ucaysSylKo9eRDFNhWve/y275iPmIZ4z39a9iA==}
 
@@ -5628,6 +5697,10 @@ packages:
   tinyspy@4.0.4:
     resolution: {integrity: sha512-azl+t0z7pw/z958Gy9svOTuzqIk6xq+NSheJzn5MMWtWTFywIacg2wUlzKFGtt3cthx0r2SxMK0yzJOR0IES7Q==}
     engines: {node: '>=14.0.0'}
+
+  tmp@0.2.7:
+    resolution: {integrity: sha512-e0votIpp4Uo2AJYSzVHV6xCcawuiez3DzqDAbrTc3YxBkplN6e+dM13ZeIcZnDg/QpSuU2zfZ3rzwY8ukEnaXw==}
+    engines: {node: '>=14.14'}
 
   tmpl@1.0.5:
     resolution: {integrity: sha512-3f0uOEAQwIqGuWW2MVzYg8fV/QNnc/IpuJNG837rLuczAaLVHslWHZQj4IGiEl5Hs3kkbhwL9Ab7Hrsmuj+Smw==}
@@ -6869,6 +6942,8 @@ snapshots:
     optionalDependencies:
       '@types/node': 22.20.1
 
+  '@ioredis/as-callback@3.0.0': {}
+
   '@ioredis/commands@1.10.0': {}
 
   '@istanbuljs/load-nyc-config@1.1.0':
@@ -7920,6 +7995,10 @@ snapshots:
   '@types/graceful-fs@4.1.9':
     dependencies:
       '@types/node': 22.20.1
+
+  '@types/ioredis-mock@8.2.8(ioredis@5.11.1(supports-color@8.1.1))':
+    dependencies:
+      ioredis: 5.11.1(supports-color@8.1.1)
 
   '@types/istanbul-lib-coverage@2.0.6': {}
 
@@ -9420,6 +9499,16 @@ snapshots:
     optionalDependencies:
       picomatch: 4.0.5
 
+  fengari-interop@0.1.4(fengari@0.1.5):
+    dependencies:
+      fengari: 0.1.5
+
+  fengari@0.1.5:
+    dependencies:
+      readline-sync: 1.4.10
+      sprintf-js: 1.1.3
+      tmp: 0.2.7
+
   file-entry-cache@8.0.0:
     dependencies:
       flat-cache: 4.0.1
@@ -9672,6 +9761,16 @@ snapshots:
       side-channel: 1.1.1
 
   internmap@2.0.3: {}
+
+  ioredis-mock@8.13.1(@types/ioredis-mock@8.2.8(ioredis@5.11.1(supports-color@8.1.1)))(ioredis@5.11.1(supports-color@8.1.1)):
+    dependencies:
+      '@ioredis/as-callback': 3.0.0
+      '@ioredis/commands': 1.10.0
+      '@types/ioredis-mock': 8.2.8(ioredis@5.11.1(supports-color@8.1.1))
+      fengari: 0.1.5
+      fengari-interop: 0.1.4(fengari@0.1.5)
+      ioredis: 5.11.1(supports-color@8.1.1)
+      semver: 7.8.5
 
   ioredis@5.11.1(supports-color@8.1.1):
     dependencies:
@@ -10781,6 +10880,8 @@ snapshots:
 
   readdirp@4.1.2: {}
 
+  readline-sync@1.4.10: {}
+
   real-require@0.2.0: {}
 
   recharts-scale@0.4.5:
@@ -11096,6 +11197,8 @@ snapshots:
 
   sprintf-js@1.0.3: {}
 
+  sprintf-js@1.1.3: {}
+
   stable-hash@0.0.5: {}
 
   stack-utils@2.0.6:
@@ -11321,6 +11424,8 @@ snapshots:
   tinyrainbow@2.0.0: {}
 
   tinyspy@4.0.4: {}
+
+  tmp@0.2.7: {}
 
   tmpl@1.0.5: {}
 
