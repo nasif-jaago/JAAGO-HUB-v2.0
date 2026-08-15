@@ -69,12 +69,12 @@
   - [x] Liveness/readiness/DB/Redis/queue health probes
   - [x] ✓ Checkpoint: `/health` returns real component status
 
-- [ ] **Step 1.5** `packages/security`
-  - [ ] `SecretManager` abstraction
-  - [ ] Envelope encryption (KEK/DEK)
-  - [ ] Webhook HMAC signing/verification
-  - [ ] **Zod env validation that refuses to start** on missing config
-  - [ ] ✓ Checkpoint: app aborts boot on missing required env var
+- [x] **Step 1.5** `packages/security`
+  - [x] `SecretManager` abstraction
+  - [x] Envelope encryption (KEK/DEK)
+  - [x] Webhook HMAC signing/verification
+  - [x] **Zod env validation that refuses to start** on missing config
+  - [x] ✓ Checkpoint: app aborts boot on missing required env var
 
 - [ ] **Step 1.6** `packages/database` + Supabase local + first migration
   - [ ] Drizzle ORM setup
@@ -229,3 +229,4 @@ Top 3 for immediate attention:
 | 2026-08-16 | Step 1.2 | packages/shared-types & packages/validation with core Zod schemas and enums |
 | 2026-08-16 | Step 1.3 | packages/logger non-blocking Pino logger, ring-buffer, structural redaction, flusher, 35 unit/security tests passing |
 | 2026-08-16 | Step 1.4 | packages/observability health probes (DB, Redis, Queue, Storage), Tracer, SystemMetricsCollector, 9 unit tests passing |
+| 2026-08-16 | Step 1.5 | packages/security SecretManager, envelope encryption (AES-256-GCM), webhook HMAC signer, boot env validator, 13 unit tests passing |
