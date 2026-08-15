@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "files": [],
+  "references": [
+    { "path": "./apps/web" },
+    { "path": "./apps/api" },
+    { "path": "./apps/worker" },
+    { "path": "./packages/shared-types" },
+    { "path": "./packages/validation" },
+    { "path": "./packages/logger" },
+    { "path": "./packages/observability" },
+    { "path": "./packages/security" },
+    { "path": "./packages/database" },
+    { "path": "./packages/cache" },
+    { "path": "./packages/queue" },
+    { "path": "./packages/events" },
+    { "path": "./packages/auth" }
+  ]
+}

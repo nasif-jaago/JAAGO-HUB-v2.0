@@ -1,0 +1,32 @@
+{
+  "name": "@jaago/validation",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Shared Zod validation schemas for JAAGO ERP (single source of truth for FE and BE)",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./auth": "./src/auth/index.ts",
+    "./hr": "./src/hr/index.ts",
+    "./procurement": "./src/procurement/index.ts",
+    "./finance": "./src/finance/index.ts",
+    "./common": "./src/common/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src --ext .ts",
+    "test:unit": "vitest run",
+    "clean": "rimraf dist"
+  },
+  "dependencies": {
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@jaago/config-typescript": "workspace:*",
+    "@jaago/shared-types": "workspace:*",
+    "rimraf": "^6.0.1",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
+  }
+}

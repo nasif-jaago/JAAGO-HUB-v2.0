@@ -1,0 +1,30 @@
+{
+  "name": "jaago-erp",
+  "version": "0.0.1",
+  "private": true,
+  "description": "JAAGO Foundation ERP v2.0 — JAAGO HUB",
+  "engines": {
+    "node": ">=22.0.0",
+    "pnpm": ">=11.0.0"
+  },
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "test:unit": "turbo run test:unit",
+    "test:integration": "turbo run test:integration",
+    "typecheck": "turbo run typecheck",
+    "lint": "turbo run lint",
+    "lint:fix": "turbo run lint:fix",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,css}\" --ignore-path .gitignore",
+    "clean": "turbo run clean && rimraf node_modules",
+    "seed": "pnpm --filter @jaago/database seed",
+    "create-module": "tsx scripts/create-module.ts"
+  },
+  "devDependencies": {
+    "turbo": "latest",
+    "prettier": "^3.5.3",
+    "rimraf": "^6.0.1",
+    "tsx": "^4.19.4"
+  }
+}
