@@ -76,12 +76,12 @@
   - [x] **Zod env validation that refuses to start** on missing config
   - [x] ✓ Checkpoint: app aborts boot on missing required env var
 
-- [ ] **Step 1.6** `packages/database` + Supabase local + first migration
-  - [ ] Drizzle ORM setup
-  - [ ] Repository base class (forbids unbounded queries)
-  - [ ] Supabase CLI local setup
-  - [ ] First migration (trivial table with RLS)
-  - [ ] ✓ Checkpoint: trivial table migrates up/down; unbounded query throws
+- [x] **Step 1.6** `packages/database` + Supabase local + first migration
+  - [x] Drizzle ORM setup
+  - [x] Repository base class (forbids unbounded queries)
+  - [x] Supabase CLI local setup
+  - [x] First migration (trivial table with RLS)
+  - [x] ✓ Checkpoint: trivial table migrates up/down; unbounded query throws
 
 - [ ] **Step 1.7** `packages/cache` + `packages/queue` + `packages/events`
   - [ ] Redis client + namespaces/tags/TTL/SWR/locks
@@ -230,3 +230,4 @@ Top 3 for immediate attention:
 | 2026-08-16 | Step 1.3 | packages/logger non-blocking Pino logger, ring-buffer, structural redaction, flusher, 35 unit/security tests passing |
 | 2026-08-16 | Step 1.4 | packages/observability health probes (DB, Redis, Queue, Storage), Tracer, SystemMetricsCollector, 9 unit tests passing |
 | 2026-08-16 | Step 1.5 | packages/security SecretManager, envelope encryption (AES-256-GCM), webhook HMAC signer, boot env validator, 13 unit tests passing |
+| 2026-08-16 | Step 1.6 | packages/database Drizzle ORM schema, BaseRepository with unbounded query prevention, RLS migration, 8 unit tests passing |
