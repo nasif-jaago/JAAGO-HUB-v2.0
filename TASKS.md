@@ -89,13 +89,13 @@
   - [x] In-proc + Redis Streams event bus + outbox pattern
   - [x] ✓ Checkpoint: demo job enqueues/runs/dedupes; event round-trips via outbox
 
-- [ ] **Step 1.8** Scaffold `apps/api` (NestJS/Fastify)
-  - [ ] Global guards: auth, permission, tenant-context
-  - [ ] Interceptors: correlation-ID, structured logging, transform
-  - [ ] Centralized error mapping (code/status/human message/correlationId)
-  - [ ] Rate limiting (layered)
-  - [ ] Demo endpoint with OpenAPI decoration
-  - [ ] ✓ Checkpoint: demo endpoint returns envelope + correlationId in logs
+- [x] **Step 1.8** Scaffold `apps/api` (NestJS/Fastify)
+  - [x] Global guards: auth, permission, tenant-context
+  - [x] Interceptors: correlation-ID, structured logging, transform
+  - [x] Centralized error mapping (code/status/human message/correlationId)
+  - [x] Rate limiting (layered)
+  - [x] Demo endpoint with OpenAPI decoration
+  - [x] ✓ Checkpoint: demo endpoint returns envelope + correlationId in logs
 
 - [ ] **Step 1.9** Scaffold `apps/web` (Next.js App Router)
   - [ ] Mobile-first app shell (Sidebar, Topbar, PageHeader, Breadcrumbs)
@@ -232,3 +232,4 @@ Top 3 for immediate attention:
 | 2026-08-16 | Step 1.5 | packages/security SecretManager, envelope encryption (AES-256-GCM), webhook HMAC signer, boot env validator, 13 unit tests passing |
 | 2026-08-16 | Step 1.6 | packages/database Drizzle ORM schema, BaseRepository with unbounded query prevention, RLS migration, 8 unit tests passing |
 | 2026-08-16 | Step 1.7 | packages/cache, packages/queue, packages/events (Redis locks, BullMQ queue manager, EventBus & Outbox publisher, 10 unit tests passing) |
+| 2026-08-16 | Step 1.8 | apps/api NestJS Fastify scaffold, global guards (auth, tenant, permission), interceptors (correlation-id, logging, transform), global exception filter, OpenAPI docs, health & ping endpoints |

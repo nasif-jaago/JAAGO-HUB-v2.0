@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+export { z };
+
 /**
  * Standard Environment Variable Schema for JAAGO API and Worker services.
  */
