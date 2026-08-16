@@ -9,11 +9,13 @@
     "start": "node dist/main.js",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src --ext .ts",
+    "test:unit": "vitest run --reporter=verbose",
     "clean": "rimraf dist"
   },
   "dependencies": {
     "@jaago/cache": "workspace:*",
     "@jaago/database": "workspace:*",
+    "@jaago/events": "workspace:*",
     "@jaago/logger": "workspace:*",
     "@jaago/queue": "workspace:*",
     "@jaago/security": "workspace:*",
@@ -25,8 +27,10 @@
   "devDependencies": {
     "@jaago/config-typescript": "workspace:*",
     "@types/node": "^22.15.32",
+    "ioredis-mock": "^8.9.0",
     "rimraf": "^6.0.1",
     "tsx": "^4.19.4",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
   }
 }

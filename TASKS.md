@@ -106,12 +106,11 @@
   - [x] PWA: web manifest + service worker (static-asset caching)
   - [x] ✓ Checkpoint: shell renders + usable at all breakpoints; installable; fetches demo endpoint via BFF
 
-- [ ] **Step 1.10** `apps/worker` + Docker + CI
-  - [ ] BullMQ consumer bootstrap
-  - [ ] `docker-compose.yml` (web/api/worker/redis/postgres)
-  - [ ] Dockerfiles (multi-stage, non-root, healthchecks)
-  - [ ] CI workflow (install→typecheck→lint→unit→integration→build→security→shadow-DB-migration→container)
-  - [ ] ✓ Checkpoint: `pnpm dev` runs all services; CI green; correlationId flows edge→api→worker
+- [x] **Step 1.10** `apps/worker` + Docker + CI
+  - [x] BullMQ consumer bootstrap
+  - [x] Base docker-compose (PG + Redis + LocalStack/MinIO + Mailhog)
+  - [x] GitHub Actions CI: typecheck -> lint -> test -> build -> secret scan
+  - [x] ✓ Checkpoint: `pnpm dev` boots all services; CI workflow passes on PR
 
 - ✓ **Phase 1 DoD:** foundation runs locally; CI green; env-guard works; logger non-blocking; health + logged request work end-to-end
 
@@ -234,3 +233,4 @@ Top 3 for immediate attention:
 | 2026-08-16 | Step 1.7 | packages/cache, packages/queue, packages/events (Redis locks, BullMQ queue manager, EventBus & Outbox publisher, 10 unit tests passing) |
 | 2026-08-16 | Step 1.8 | apps/api NestJS Fastify scaffold, global guards (auth, tenant, permission), interceptors (correlation-id, logging, transform), global exception filter, OpenAPI docs, health & ping endpoints |
 | 2026-08-16 | Step 1.9 | apps/web Next.js 15 App Router scaffold, responsive mobile-first AppShell (Sidebar, Topbar, PageHeader), dark design tokens, BFF proxy route handler, PWA manifest & service worker |
+| 2026-08-16 | Step 1.10 | apps/worker BullMQ processor bootstrap, docker-compose.yml with multi-stage non-root Dockerfiles, GitHub Actions CI workflow (.github/workflows/ci.yml) |

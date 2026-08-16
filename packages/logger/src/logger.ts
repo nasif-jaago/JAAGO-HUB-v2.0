@@ -36,31 +36,31 @@ export type LogLevel = "debug" | "info" | "warn" | "error" | "fatal";
 /** Structured context fields carried on every log entry */
 export interface LogContext {
   /** Correlation ID — propagated from HTTP request header through the entire call chain */
-  correlationId?: string;
+  correlationId?: string | undefined;
   /** OpenTelemetry trace ID */
-  traceId?: string;
+  traceId?: string | undefined;
   /** Span ID */
-  spanId?: string;
+  spanId?: string | undefined;
   /** Org tenant ID — set by the tenant-context guard */
-  orgId?: string;
+  orgId?: string | undefined;
   /** User ID — set by the auth guard */
-  userId?: string;
+  userId?: string | undefined;
   /** Module name e.g. 'hr.leave', 'procurement' */
-  module?: string;
+  module?: string | undefined;
   /** BullMQ job ID — set in worker context */
-  jobId?: string;
+  jobId?: string | undefined;
   /** Integration connector ID */
-  connectorId?: string;
+  connectorId?: string | undefined;
   /** HTTP route pattern e.g. '/api/v1/hr/employees/:id' */
-  route?: string;
+  route?: string | undefined;
   /** HTTP method */
-  httpMethod?: string;
+  httpMethod?: string | undefined;
   /** HTTP status code */
-  status?: number;
+  status?: number | undefined;
   /** Request duration in milliseconds */
-  durationMs?: number;
+  durationMs?: number | undefined;
   /** Machine/error error code for issue templates */
-  errorCode?: string;
+  errorCode?: string | undefined;
   /** Any additional structured fields — will be deep-redacted */
   [key: string]: unknown;
 }

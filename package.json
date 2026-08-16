@@ -2,6 +2,7 @@
   "name": "jaago-erp",
   "version": "0.0.1",
   "private": true,
+  "packageManager": "pnpm@11.22.0",
   "description": "JAAGO Foundation ERP v2.0 — JAAGO HUB",
   "engines": {
     "node": ">=22.0.0",

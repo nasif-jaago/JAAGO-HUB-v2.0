@@ -241,6 +241,9 @@ importers:
       '@jaago/database':
         specifier: workspace:*
         version: link:../../packages/database
+      '@jaago/events':
+        specifier: workspace:*
+        version: link:../../packages/events
       '@jaago/logger':
         specifier: workspace:*
         version: link:../../packages/logger
@@ -269,6 +272,9 @@ importers:
       '@types/node':
         specifier: ^22.15.32
         version: 22.20.1
+      ioredis-mock:
+        specifier: ^8.9.0
+        version: 8.13.1(@types/ioredis-mock@8.2.8(ioredis@5.11.1(supports-color@8.1.1)))(ioredis@5.11.1(supports-color@8.1.1))
       rimraf:
         specifier: ^6.0.1
         version: 6.1.3
@@ -278,6 +284,9 @@ importers:
       typescript:
         specifier: ^5.8.3
         version: 5.9.3
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.7(@types/node@22.20.1)(jiti@1.21.7)(supports-color@8.1.1)(terser@5.50.0)(tsx@4.23.12)
 
   packages/api-client:
     devDependencies:

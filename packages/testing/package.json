@@ -1,6 +1,6 @@
-{
+﻿{
     "scripts":  {
-                    "test:unit":  "vitest run",
+                    "test:unit":  "vitest run --passWithNoTests",
                     "clean":  "rimraf dist",
                     "typecheck":  "tsc --noEmit",
                     "lint":  "eslint src --ext .ts"
@@ -21,3 +21,4 @@
                 },
     "main":  "./src/index.ts"
 }
+

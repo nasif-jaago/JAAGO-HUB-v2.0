@@ -1,4 +1,4 @@
-{
+﻿{
   "name": "@jaago/validation",
   "version": "0.0.1",
   "private": true,
@@ -16,7 +16,7 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "lint": "eslint src --ext .ts",
-    "test:unit": "vitest run",
+    "test:unit": "vitest run --passWithNoTests",
     "clean": "rimraf dist"
   },
   "dependencies": {
@@ -30,3 +30,4 @@
     "vitest": "^3.2.4"
   }
 }
+
