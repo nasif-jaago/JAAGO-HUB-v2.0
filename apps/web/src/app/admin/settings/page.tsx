@@ -18,9 +18,11 @@ import {
   Check,
   MapPin,
   Edit3,
+  Cpu,
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { apiClient } from "@/lib/api-client";
+import { SystemArchitectureView } from "@/components/admin/system-architecture-view";
 
 interface BranchGeofenceConfig {
   id: string;
@@ -84,7 +86,7 @@ interface ApiToken {
 
 export default function AdminSettingsPage() {
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<"rbac" | "smtp" | "attendance" | "api-tokens" | "security">("rbac");
+  const [activeTab, setActiveTab] = useState<"rbac" | "smtp" | "attendance" | "api-tokens" | "security" | "about">("rbac");
   const [selectedRoleId, setSelectedRoleId] = useState<string>("r_admin");
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
   const [statusNotification, setStatusNotification] = useState<{ type: "success" | "error"; msg: string } | null>(null);
@@ -377,6 +379,7 @@ export default function AdminSettingsPage() {
           { id: "attendance", label: "Attendance & Geofencing", icon: MapPin },
           { id: "api-tokens", label: "API & Access Tokens", icon: Key },
           { id: "security", label: "Security & MFA Policies", icon: Lock },
+          { id: "about", label: "About & Architecture", icon: Cpu },
         ].map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -978,6 +981,9 @@ export default function AdminSettingsPage() {
           </div>
         </div>
       )}
+
+      {/* ─── TAB 6: ABOUT & SYSTEM ARCHITECTURE ─────────────────────────────── */}
+      {activeTab === "about" && <SystemArchitectureView />}
 
       {/* ─── MODAL: CREATE ROLE ──────────────────────────────────────────────── */}
       {showCreateRole && (
