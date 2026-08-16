@@ -247,3 +247,14 @@ Top 3 for immediate attention:
 | 2026-08-16 | Step 4.5 | HR Attendance & Admin Geofencing: Haversine geofence calculation, live mobile GPS clock-in (/hr/attendance), and full Admin Panel branch & biometric editor (/admin/settings) |
 | 2026-08-16 | Step 4.6 | HR Recruitment & Onboarding (ATS): Job opening requisitions, candidate pipeline screening, and 1-click automated employee master enrollment (/hr/recruitment) |
 | 2026-08-16 | Step 4.7 | Procurement: Purchase Requisitions (PR), multi-vendor quotation comparison (CS), and automated Purchase Order (PO) issuance (/procurement) |
+| 2026-08-16 | Step 4.8 | Inventory & Warehousing: Goods Receipt Notes (GRN), Stock Ledger with weighted average valuation, Branch Dispatch (/inventory) |
+| 2026-08-16 | Step 4.9 | Finance & General Ledger: Multi-tier Chart of Accounts, strict double-entry vouchers (JV, PV, RV) (/finance) |
+| 2026-08-16 | Step 4.10 | Fixed Assets & Fleet Logistics: Enterprise fixed asset tagging, straight-line depreciation engine, trip/fuel vehicle logs (/assets) |
+| 2026-08-16 | Step 4.11 | Field Programmes & School Operations: Nationwide branch schools, student enrollment, digital studio sessions (/schools) |
+| 2026-08-16 | Step 4.12 | Donors & Grant Management: Institutional grants portfolio, milestone disbursement tranches, 1-to-1 child sponsorship (/donors) |
+| 2026-08-16 | Step 4.13 | Vendor Portal & Compliance: Supplier self-onboarding, Trade License & TIN verification, 5-star ratings (/vendors) |
+| 2026-08-16 | Step 6.5 | Integrations & MCP Admin: Model Context Protocol agent servers, webhook registry, API tokens (/admin/observability) |
+| 2026-08-16 | Step 6.6 | Backup & Recovery Center: Automated WAL replication, S3 Glacier snapshots, Point-In-Time-Recovery (PITR) drill engine |
+| 2026-08-16 | Step 6.7 | System Dashboard & Observability: Live Fastify API RPM/latency telemetry, Redis queue depth, Postgres connection pool (/admin/observability) |
+| 2026-08-16 | Phase 7 | Business Modules Completion: Executive BI, Operational Tasks & Compliance Documents Hub (/reports) |
+| 2026-08-16 | Phase 8 | Hardening & Pilot Readiness: RLS audit, encryption verification, PILOT_READINESS.md and DISASTER_RECOVERY.md runbooks |
