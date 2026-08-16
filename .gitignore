@@ -38,7 +38,6 @@ Thumbs.db
 *.swo
 
 # IDE
-.vscode/settings.json
 .idea/
 *.suo
 *.ntvs*
