@@ -6,6 +6,7 @@ import {
   Param,
   Body,
   Req,
+  Inject,
 } from "@nestjs/common";
 import { ApiTags, ApiOperation, ApiBearerAuth } from "@nestjs/swagger";
 import { Public } from "../../common/decorators/require-permission.decorator.js";
@@ -16,7 +17,7 @@ import type { NotificationDto, CreateNotificationDto } from "./dto/notification.
 @ApiBearerAuth()
 @Controller("api/v1/notifications")
 export class NotificationsController {
-  constructor(private readonly notifService: NotificationsService) {}
+  constructor(@Inject(NotificationsService) private readonly notifService: NotificationsService) {}
 
   private resolveContext(req: { user?: { id: string }; tenant?: { orgId?: string }; headers?: Record<string, string> }) {
     const userId = req.user?.id || "00000000-0000-0000-0000-000000000001";

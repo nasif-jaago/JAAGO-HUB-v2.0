@@ -17,7 +17,13 @@ async function bootstrap() {
   const logger = getLogger();
   logger.info({}, "Bootstrapping JAAGO HUB Background Worker process...");
 
-  // 2. Validate environment
+  // 2. Ensure development defaults are populated if not in environment
+  process.env["DATABASE_URL"] = process.env["DATABASE_URL"] || "postgresql://postgres:postgres@localhost:54322/postgres";
+  process.env["SUPABASE_URL"] = process.env["SUPABASE_URL"] || "https://rdmyghbciiepqmlwekjd.supabase.co";
+  process.env["SUPABASE_SERVICE_ROLE_KEY"] = process.env["SUPABASE_SERVICE_ROLE_KEY"] || "dummy_service_role_key_for_dev_mode_testing_32chars";
+  process.env["REDIS_URL"] = process.env["REDIS_URL"] || "redis://localhost:6379";
+  process.env["ENCRYPTION_KEK"] = process.env["ENCRYPTION_KEK"] || "default_super_secret_encryption_key_32chars!";
+
   const env = validateEnv(baseEnvSchema);
 
   // 3. Initialize Redis connection

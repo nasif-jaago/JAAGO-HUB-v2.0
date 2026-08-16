@@ -1,5 +1,5 @@
 import { Module } from "@nestjs/common";
-import { APP_GUARD, APP_INTERCEPTOR, APP_FILTER } from "@nestjs/core";
+import { APP_GUARD, APP_INTERCEPTOR, APP_FILTER, Reflector } from "@nestjs/core";
 import { AuthGuard } from "./common/guards/auth.guard.js";
 import { TenantContextGuard } from "./common/guards/tenant-context.guard.js";
 import { PermissionGuard } from "./common/guards/permission.guard.js";
@@ -33,6 +33,7 @@ import { ProcurementModule } from "./modules/procurement/procurement.module.js";
   ],
   controllers: [HealthController, DemoController],
   providers: [
+    Reflector,
     // Global Exception Filter
     {
       provide: APP_FILTER,

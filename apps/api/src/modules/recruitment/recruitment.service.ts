@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
+import { Injectable, NotFoundException, BadRequestException, Inject } from "@nestjs/common";
 import { getLogger } from "@jaago/logger";
 import { EmployeesService } from "../hr/employees.service.js";
 import type {
@@ -15,7 +15,7 @@ export class RecruitmentService {
   private readonly jobs: JobOpeningDto[] = [];
   private readonly candidates: CandidateDto[] = [];
 
-  constructor(private readonly employeesService: EmployeesService) {
+  constructor(@Inject(EmployeesService) private readonly employeesService: EmployeesService) {
     this.seedDefaultRecruitmentData();
   }
 

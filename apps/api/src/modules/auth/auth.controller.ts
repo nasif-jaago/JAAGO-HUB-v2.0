@@ -6,6 +6,7 @@ import {
   Body,
   Param,
   Req,
+  Inject,
 } from "@nestjs/common";
 import { ApiTags, ApiOperation, ApiBearerAuth } from "@nestjs/swagger";
 import { Public } from "../../common/decorators/require-permission.decorator.js";
@@ -23,7 +24,7 @@ import type {
 @ApiTags("Authentication & Identity")
 @Controller("api/v1/auth")
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(@Inject(AuthService) private readonly authService: AuthService) {}
 
   @Public()
   @Post("login")

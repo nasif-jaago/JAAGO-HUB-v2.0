@@ -7,6 +7,7 @@ import {
   Body,
   Query,
   Req,
+  Inject,
 } from "@nestjs/common";
 import { ApiTags, ApiOperation, ApiBearerAuth } from "@nestjs/swagger";
 import { Public } from "../../common/decorators/require-permission.decorator.js";
@@ -23,7 +24,7 @@ import type {
 @ApiBearerAuth()
 @Controller("api/v1/attendance")
 export class AttendanceController {
-  constructor(private readonly attendanceService: AttendanceService) {}
+  constructor(@Inject(AttendanceService) private readonly attendanceService: AttendanceService) {}
 
   private resolveOrgId(req: { tenant?: { orgId?: string }; headers?: Record<string, string> }): string {
     return (
