@@ -122,23 +122,15 @@ export function Sidebar() {
           isSidebarCollapsed ? "md:w-20" : "md:w-72",
         )}
       >
-        {/* Top Brand Banner Card with JAAGO Logo */}
+        {/* Top Brand Banner Card with Official JAAGO Logo */}
         <div className="p-3">
-          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#F59E0B] via-[#EAB308] to-[#FBBF24] p-3 text-black shadow-md border border-amber-400/40">
-            <Link href="/" className="flex flex-col items-center justify-center gap-1">
-              <div className="flex items-center justify-center gap-2">
-                <span className="font-extrabold text-2xl tracking-tighter text-black">
-                  j<span className="text-black font-black">aa</span>g<span className="text-black">o</span>
-                </span>
-                <div className="w-8 h-8 rounded-full bg-black/10 flex items-center justify-center font-bold text-xs text-black border border-black/20">
-                  BD
-                </div>
-              </div>
-              {(!isSidebarCollapsed || isMobileSidebarOpen) && (
-                <div className="text-[10px] uppercase font-bold tracking-widest text-black/80 font-mono">
-                  foundation
-                </div>
-              )}
+          <div className="relative overflow-hidden rounded-2xl bg-[#FFC72C] p-1.5 text-black shadow-md border border-amber-400/40 flex items-center justify-center">
+            <Link href="/" className="flex items-center justify-center w-full">
+              <img
+                src="/jaago-logo.png"
+                alt="JAAGO Foundation"
+                className="w-full h-16 sm:h-20 object-contain rounded-xl"
+              />
             </Link>
 
             {/* Mobile close button */}
