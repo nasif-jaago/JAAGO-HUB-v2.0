@@ -8,6 +8,8 @@ interface CookieToSet {
   options: CookieOptions;
 }
 
+const ALLOWED_DOMAINS = ["jaago.com.bd", "emkcenter.org"];
+
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
@@ -36,12 +38,23 @@ export async function GET(request: Request) {
       }
     );
 
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (!error) {
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+    if (!error && data?.user) {
+      const email = data.user.email?.toLowerCase() || "";
+      const isAllowed = ALLOWED_DOMAINS.some((domain) => email.endsWith(`@${domain}`));
+
+      if (!isAllowed) {
+        // Enforce strict security: sign out and block outsider email domains
+        await supabase.auth.signOut();
+        return NextResponse.redirect(
+          `${origin}/login?error=domain_restricted&msg=Access%20restricted.%20Only%20@jaago.com.bd%20and%20@emkcenter.org%20accounts%20are%20permitted.`
+        );
+      }
+
       return NextResponse.redirect(`${origin}${next}`);
     }
   }
 
-  // Return the user to an error page or back to login if failed
+  // Return the user to login with error details if failed
   return NextResponse.redirect(`${origin}/login?error=oauth_failed`);
 }

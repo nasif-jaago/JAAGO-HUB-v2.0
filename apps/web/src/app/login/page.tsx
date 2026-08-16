@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
   Mail,
@@ -33,8 +33,19 @@ interface LoginResult {
   mfaTicket?: string;
 }
 
+const ALLOWED_DOMAINS = ["jaago.com.bd", "emkcenter.org"];
+
 export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-xs text-muted-foreground">Loading...</div>}>
+      <LoginPageContent />
+    </Suspense>
+  );
+}
+
+function LoginPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { setAuth } = useAuthStore();
 
   const [email, setEmail] = useState("nasif.kamal@jaago.com.bd");
@@ -46,12 +57,34 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Check for active Supabase OAuth session on page load
+  // Check URL parameters for OAuth errors
+  useEffect(() => {
+    const errorParam = searchParams.get("error");
+    const msgParam = searchParams.get("msg");
+    if (msgParam) {
+      setErrorMessage(msgParam);
+    } else if (errorParam === "domain_restricted") {
+      setErrorMessage("Access denied. Only @jaago.com.bd and @emkcenter.org accounts are authorized.");
+    } else if (errorParam === "oauth_failed") {
+      setErrorMessage("Google OAuth sign-in failed. Please ensure the Supabase Google provider is configured with your Client ID and Secret.");
+    }
+  }, [searchParams]);
+
+  // Check for active Supabase OAuth session on page load with domain validation
   useEffect(() => {
     try {
       const supabase = createClient();
       supabase.auth.getSession().then(({ data: { session } }) => {
         if (session?.user) {
+          const userEmail = session.user.email?.toLowerCase() || "";
+          const isAllowed = ALLOWED_DOMAINS.some((d) => userEmail.endsWith(`@${d}`));
+
+          if (!isAllowed) {
+            supabase.auth.signOut();
+            setErrorMessage("Access restricted: Only @jaago.com.bd and @emkcenter.org accounts are allowed.");
+            return;
+          }
+
           setAuth(
             {
               id: session.user.id,
@@ -81,6 +114,15 @@ export default function LoginPage() {
     setIsLoading(true);
     setErrorMessage(null);
 
+    const emailTrimmed = email.trim().toLowerCase();
+    const isDomainAllowed = ALLOWED_DOMAINS.some((d) => emailTrimmed.endsWith(`@${d}`));
+
+    if (!isDomainAllowed) {
+      setErrorMessage("Access restricted: Only @jaago.com.bd and @emkcenter.org domains are allowed.");
+      setIsLoading(false);
+      return;
+    }
+
     try {
       if (mfaTicket) {
         // Step 2: Verify TOTP MFA
@@ -96,7 +138,7 @@ export default function LoginPage() {
         try {
           const res = await apiClient<LoginResult>("/v1/auth/login", {
             method: "POST",
-            body: JSON.stringify({ email, password }),
+            body: JSON.stringify({ email: emailTrimmed, password }),
           });
 
           if (res.requiresMfa && res.mfaTicket) {
@@ -110,7 +152,7 @@ export default function LoginPage() {
           setAuth(
             {
               id: "00000000-0000-0000-0000-000000000001",
-              email: email || "nasif.kamal@jaago.com.bd",
+              email: emailTrimmed || "nasif.kamal@jaago.com.bd",
               displayName: "Nasif Kamal | Coordinator, Tech 4 Development",
               orgId: "00000000-0000-0000-0000-000000000000",
               roles: ["SUPER_ADMIN"],
@@ -141,7 +183,7 @@ export default function LoginPage() {
           redirectTo: `${window.location.origin}/auth/callback`,
           queryParams: {
             access_type: "offline",
-            prompt: "consent",
+            prompt: "select_account",
           },
         },
       });
