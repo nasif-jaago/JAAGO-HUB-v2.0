@@ -67,4 +67,4 @@ tmp/
 *.cert
 *.p12
 *.pfx
-secrets/
+/secrets/
