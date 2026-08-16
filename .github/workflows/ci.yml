@@ -14,6 +14,15 @@ jobs:
   validate:
     name: Lint, Typecheck, Test & Build
     runs-on: ubuntu-latest
+    env:
+      NEXT_TELEMETRY_DISABLED: 1
+      NODE_ENV: test
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/jaago_test
+      SUPABASE_URL: https://mock-supabase.supabase.co
+      SUPABASE_SERVICE_ROLE_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.dummy_ci_service_role_key_long_enough
+      REDIS_URL: redis://localhost:6379
+      ENCRYPTION_KEK: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+      JWT_SECRET: supersecret_ci_jwt_secret_key_32bytes_long
 
     steps:
       - name: Checkout Code
