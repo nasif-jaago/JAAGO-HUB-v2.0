@@ -148,7 +148,7 @@
 - [x] **Step 4.4** HR: Leave module (quota, accrual, approval hook)
 - [x] **Step 4.5** HR: Attendance module (biometric + geofenced check-in)
 - [x] **Step 4.6** HR: Recruitment & Onboarding module
-- [ ] **Step 4.7** Procurement: PR → Quotation → Comparison → PO
+- [x] **Step 4.7** Procurement: PR → Quotation → Comparison → PO
 - [ ] **Step 4.8** Inventory: Goods Receipt (GRN) → Stock Ledger → Dispatch
 - [ ] **Step 4.9** Finance: Chart of Accounts → Journal/Payment Vouchers → Approval
 - [ ] **Step 4.10** Fixed Assets & Fleet management module
@@ -246,3 +246,4 @@ Top 3 for immediate attention:
 | 2026-08-16 | Step 4.4 | HR Leave & Time-Off: Bangladesh quota management (Annual, Sick, Casual, Maternity), application modal, and approvals integration (/hr/leave) |
 | 2026-08-16 | Step 4.5 | HR Attendance & Admin Geofencing: Haversine geofence calculation, live mobile GPS clock-in (/hr/attendance), and full Admin Panel branch & biometric editor (/admin/settings) |
 | 2026-08-16 | Step 4.6 | HR Recruitment & Onboarding (ATS): Job opening requisitions, candidate pipeline screening, and 1-click automated employee master enrollment (/hr/recruitment) |
+| 2026-08-16 | Step 4.7 | Procurement: Purchase Requisitions (PR), multi-vendor quotation comparison (CS), and automated Purchase Order (PO) issuance (/procurement) |

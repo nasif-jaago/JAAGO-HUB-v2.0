@@ -20,6 +20,7 @@
     "@jaago/cache": "workspace:*",
     "@jaago/database": "workspace:*",
     "@jaago/events": "workspace:*",
+    "@jaago/integrations": "workspace:*",
     "@jaago/logger": "workspace:*",
     "@jaago/observability": "workspace:*",
     "@jaago/queue": "workspace:*",

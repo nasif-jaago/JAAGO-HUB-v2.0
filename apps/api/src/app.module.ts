@@ -17,9 +17,20 @@ import { ApprovalsModule } from "./modules/approvals/approvals.module.js";
 import { HrModule } from "./modules/hr/hr.module.js";
 import { AttendanceModule } from "./modules/attendance/attendance.module.js";
 import { RecruitmentModule } from "./modules/recruitment/recruitment.module.js";
+import { ProcurementModule } from "./modules/procurement/procurement.module.js";
 
 @Module({
-  imports: [AdminModule, ApiAuthModule, AuditModule, NotificationsModule, ApprovalsModule, HrModule, AttendanceModule, RecruitmentModule],
+  imports: [
+    AdminModule,
+    ApiAuthModule,
+    AuditModule,
+    NotificationsModule,
+    ApprovalsModule,
+    HrModule,
+    AttendanceModule,
+    RecruitmentModule,
+    ProcurementModule,
+  ],
   controllers: [HealthController, DemoController],
   providers: [
     // Global Exception Filter

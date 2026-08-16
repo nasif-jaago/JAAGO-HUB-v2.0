@@ -38,6 +38,9 @@ importers:
       '@jaago/events':
         specifier: workspace:*
         version: link:../../packages/events
+      '@jaago/integrations':
+        specifier: workspace:*
+        version: link:../../packages/integrations
       '@jaago/logger':
         specifier: workspace:*
         version: link:../../packages/logger
