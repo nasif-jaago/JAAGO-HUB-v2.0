@@ -150,7 +150,7 @@
 - [x] **Step 4.6** HR: Recruitment & Onboarding module
 - [x] **Step 4.7** Procurement: PR → Quotation → Comparison → PO
 - [x] **Step 4.8** Inventory: Goods Receipt (GRN) → Stock Ledger → Dispatch
-- [ ] **Step 4.9** Finance: Chart of Accounts → Journal/Payment Vouchers → Approval
+- [x] **Step 4.9** Finance: Chart of Accounts → Journal/Payment Vouchers → Approval
 - [ ] **Step 4.10** Fixed Assets & Fleet management module
 - [ ] **Step 4.11** Field Programmes & School Operations module
 - [ ] **Step 4.12** Donors & Grant Management module

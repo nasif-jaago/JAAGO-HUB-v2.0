@@ -19,6 +19,7 @@ import { AttendanceModule } from "./modules/attendance/attendance.module.js";
 import { RecruitmentModule } from "./modules/recruitment/recruitment.module.js";
 import { ProcurementModule } from "./modules/procurement/procurement.module.js";
 import { InventoryModule } from "./modules/inventory/inventory.module.js";
+import { FinanceModule } from "./modules/finance/finance.module.js";
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { InventoryModule } from "./modules/inventory/inventory.module.js";
     RecruitmentModule,
     ProcurementModule,
     InventoryModule,
+    FinanceModule,
   ],
   controllers: [HealthController, DemoController],
   providers: [
