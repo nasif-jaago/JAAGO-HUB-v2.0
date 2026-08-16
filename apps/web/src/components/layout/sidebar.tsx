@@ -32,6 +32,7 @@ import {
   GraduationCap,
   Building2,
   ShieldCheck,
+  Settings,
   ChevronDown,
   ChevronUp,
   ChevronLeft,
@@ -85,6 +86,7 @@ export function Sidebar() {
     { name: "Contacts", href: "/hr/employees", icon: Contact },
     { name: "On Leave", href: "/hr/leave", icon: UserCheck },
     { name: "Performance & Appraisal", href: "/reports", icon: Star },
+    { name: "Admin Settings", href: "/admin/settings", icon: Settings },
   ];
 
   const departmentItems = [
@@ -98,6 +100,7 @@ export function Sidebar() {
     { name: "School Operations", href: "/schools", icon: GraduationCap },
     { name: "Vendor Management", href: "/vendors", icon: Building2 },
     { name: "Admin & Observability", href: "/admin/observability", icon: ShieldCheck },
+    { name: "Admin Settings", href: "/admin/settings", icon: Settings },
   ];
 
   return (

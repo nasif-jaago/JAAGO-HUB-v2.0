@@ -2,10 +2,12 @@
 
 import { useState, useRef, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   Menu,
   LogOut,
   User,
+  Settings,
   RotateCw,
   Sun,
   Moon,
@@ -150,11 +152,20 @@ export function Topbar() {
                 </span>
               </div>
 
-              {/* Action Divider & Logout Button */}
-              <div className="pt-2 border-t border-border/40">
+              {/* Action Divider & Actions */}
+              <div className="pt-2 border-t border-border/40 space-y-1">
+                <Link
+                  href="/admin/settings"
+                  onClick={() => setIsUserMenuOpen(false)}
+                  className="w-full flex items-center gap-2 px-3 py-2 rounded-xl font-bold text-xs text-foreground hover:bg-black/5 dark:hover:bg-white/5 transition-all text-left uppercase tracking-wider"
+                >
+                  <Settings className="w-4 h-4 text-amber-500 shrink-0" />
+                  <span>Admin Settings</span>
+                </Link>
+
                 <button
                   onClick={handleLogout}
-                  className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl font-bold text-xs text-rose-600 dark:text-rose-400 hover:bg-rose-500/15 transition-all text-left uppercase tracking-wider"
+                  className="w-full flex items-center gap-2 px-3 py-2 rounded-xl font-bold text-xs text-rose-600 dark:text-rose-400 hover:bg-rose-500/15 transition-all text-left uppercase tracking-wider"
                 >
                   <LogOut className="w-4 h-4 shrink-0" />
                   <span>Log Out</span>
