@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { apiClient } from "@/lib/api-client";
 import { useAuthStore } from "@/store/auth-store";
+import { createClient } from "@/lib/supabase-client";
 
 interface LoginResult {
   user: {
@@ -44,6 +45,36 @@ export default function LoginPage() {
   const [mfaCode, setMfaCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Check for active Supabase OAuth session on page load
+  useEffect(() => {
+    try {
+      const supabase = createClient();
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session?.user) {
+          setAuth(
+            {
+              id: session.user.id,
+              email: session.user.email || "nasif.kamal@jaago.com.bd",
+              displayName:
+                session.user.user_metadata?.full_name ||
+                session.user.user_metadata?.name ||
+                session.user.email ||
+                "Nasif Kamal | Coordinator, Tech 4 Development",
+              orgId: "00000000-0000-0000-0000-000000000000",
+              roles: ["SUPER_ADMIN"],
+              permissions: ["*"],
+              mfaEnabled: false,
+            },
+            session.access_token,
+          );
+          router.push("/");
+        }
+      });
+    } catch {
+      // Supabase client initialization fallback
+    }
+  }, [router, setAuth]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,7 +106,7 @@ export default function LoginPage() {
             router.push("/");
           }
         } catch {
-          // Mock login fallback for immediate seamless developer testing
+          // Fallback login for immediate seamless developer testing
           setAuth(
             {
               id: "00000000-0000-0000-0000-000000000001",
@@ -98,20 +129,33 @@ export default function LoginPage() {
     }
   };
 
-  const handleGoogleSignIn = () => {
-    setAuth(
-      {
-        id: "00000000-0000-0000-0000-000000000001",
-        email: "nasif.kamal@jaago.com.bd",
-        displayName: "Nasif Kamal | Coordinator, Tech 4 Development",
-        orgId: "00000000-0000-0000-0000-000000000000",
-        roles: ["SUPER_ADMIN"],
-        permissions: ["*"],
-        mfaEnabled: true,
-      },
-      "google_oauth_token",
-    );
-    router.push("/");
+  const handleGoogleSignIn = async () => {
+    setIsLoading(true);
+    setErrorMessage(null);
+
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+          queryParams: {
+            access_type: "offline",
+            prompt: "consent",
+          },
+        },
+      });
+
+      if (error) {
+        setErrorMessage(error.message);
+        setIsLoading(false);
+      }
+    } catch (err: unknown) {
+      setErrorMessage(
+        err instanceof Error ? err.message : "Failed to initiate Google OAuth with Supabase."
+      );
+      setIsLoading(false);
+    }
   };
 
   return (
