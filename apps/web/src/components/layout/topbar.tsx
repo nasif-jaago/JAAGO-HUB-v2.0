@@ -8,6 +8,7 @@ import {
   User,
   RotateCw,
   Sun,
+  Moon,
   Monitor,
   SidebarClose,
 } from "lucide-react";
@@ -18,7 +19,7 @@ import { NotificationCenter } from "./notification-center";
 export function Topbar() {
   const pathname = usePathname();
   const router = useRouter();
-  const { toggleMobileSidebar, toggleSidebarCollapse } = useUiStore();
+  const { theme, toggleTheme, toggleMobileSidebar, toggleSidebarCollapse } = useUiStore();
   const { user, logout } = useAuthStore();
 
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
@@ -86,11 +87,15 @@ export function Topbar() {
         </button>
 
         <button
-          onClick={() => {}}
+          onClick={toggleTheme}
           className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors"
-          title="Toggle Display Theme"
+          title={theme === "light" ? "Switch to Dark Mode" : "Switch to Light Mode"}
         >
-          <Sun className="w-4 h-4 text-[#FBBF24]" />
+          {theme === "light" ? (
+            <Sun className="w-4 h-4 text-[#FBBF24]" />
+          ) : (
+            <Moon className="w-4 h-4 text-sky-400" />
+          )}
         </button>
 
         <button

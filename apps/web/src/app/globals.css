@@ -4,36 +4,71 @@
 
 @layer base {
   :root {
-    --background: 222.2 84% 4.9%;
+    /* Light Mode (Warm Eggshell Canvas & Crisp White Cards) */
+    --background: 38 30% 94%; /* #F6F1E8 warm beige */
+    --foreground: 24 10% 10%; /* #1C1917 dark charcoal */
+
+    --card: 0 0% 100%; /* #FFFFFF pure white */
+    --card-foreground: 24 10% 10%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 24 10% 10%;
+
+    --primary: 38 92% 50%; /* #F59E0B JAAGO Amber */
+    --primary-foreground: 0 0% 100%;
+    --primary-hover: 38 92% 45%;
+
+    --secondary: 38 20% 90%; /* #EFECE6 soft cream */
+    --secondary-foreground: 24 10% 10%;
+
+    --muted: 38 15% 88%;
+    --muted-foreground: 24 5% 45%; /* #78716C stone gray */
+
+    --accent: 38 25% 92%;
+    --accent-foreground: 24 10% 10%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 38 15% 86%; /* #E5E0D6 */
+    --input: 38 15% 86%;
+    --ring: 38 92% 50%;
+
+    --radius: 1rem;
+  }
+
+  .dark {
+    /* Dark Mode (Sleek Slate Dark) */
+    --background: 224 25% 8%; /* #0F1117 */
     --foreground: 210 40% 98%;
 
-    --card: 222.2 84% 6.5%;
+    --card: 222 20% 12%; /* #181B22 */
     --card-foreground: 210 40% 98%;
 
-    --popover: 222.2 84% 6.5%;
+    --popover: 222 20% 12%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 217.2 91.2% 59.8%;
+    --primary: 38 92% 50%;
     --primary-foreground: 222.2 47.4% 11.2%;
-    --primary-hover: 217.2 91.2% 50%;
+    --primary-hover: 38 92% 45%;
 
-    --secondary: 217.2 32.6% 17.5%;
+    --secondary: 220 15% 18%;
     --secondary-foreground: 210 40% 98%;
 
-    --muted: 217.2 32.6% 14%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 220 15% 16%;
+    --muted-foreground: 215 15% 65%;
 
-    --accent: 217.2 32.6% 17.5%;
+    --accent: 220 15% 20%;
     --accent-foreground: 210 40% 98%;
 
     --destructive: 0 62.8% 50%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 224.3 76.3% 48%;
+    --border: 220 15% 20%;
+    --input: 220 15% 20%;
+    --ring: 38 92% 50%;
 
-    --radius: 0.5rem;
+    --radius: 1rem;
   }
 }
 
@@ -49,17 +84,17 @@
 
 /* Glassmorphic backdrop utility */
 .glass-panel {
-  background: rgba(15, 23, 42, 0.75);
+  background: hsl(var(--card) / 0.85);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid hsl(var(--border) / 0.5);
 }
 
 .glass-card {
-  background: rgba(30, 41, 59, 0.6);
+  background: hsl(var(--card) / 0.9);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.07);
+  border: 1px solid hsl(var(--border) / 0.4);
 }
 
 /* Custom sleek scrollbar */
