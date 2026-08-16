@@ -24,6 +24,11 @@ async function bootstrap() {
   const redis = new Redis(env.REDIS_URL, {
     maxRetriesPerRequest: null,
     enableReadyCheck: false,
+    lazyConnect: false,
+  });
+
+  redis.on("error", (err: Error) => {
+    logger.warn({ error: err.message }, "Redis connection warning (worker will retry)");
   });
 
   // 4. Initialize QueueManager and register worker processors
