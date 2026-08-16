@@ -31,6 +31,7 @@ const navItems: NavItem[] = [
   { name: "Procurement", href: "/procurement", icon: ShoppingCart },
   { name: "Finance", href: "/finance", icon: DollarSign },
   { name: "Approvals", href: "/approvals", icon: ShieldCheck, badge: "3" },
+  { name: "Admin Settings", href: "/admin/settings", icon: ShieldCheck },
   { name: "Observability", href: "/admin/observability", icon: Activity },
 ];
 

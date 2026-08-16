@@ -9,8 +9,10 @@ import { TransformInterceptor } from "./common/interceptors/transform.intercepto
 import { GlobalExceptionFilter } from "./common/filters/global-exception.filter.js";
 import { HealthController } from "./health/health.controller.js";
 import { DemoController } from "./demo/demo.controller.js";
+import { AdminModule } from "./modules/admin/admin.module.js";
 
 @Module({
+  imports: [AdminModule],
   controllers: [HealthController, DemoController],
   providers: [
     // Global Exception Filter
