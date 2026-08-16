@@ -152,7 +152,7 @@
 - [x] **Step 4.8** Inventory: Goods Receipt (GRN) → Stock Ledger → Dispatch
 - [x] **Step 4.9** Finance: Chart of Accounts → Journal/Payment Vouchers → Approval
 - [x] **Step 4.10** Fixed Assets & Fleet management module
-- [ ] **Step 4.11** Field Programmes & School Operations module
+- [x] **Step 4.11** Field Programmes & School Operations module
 - [ ] **Step 4.12** Donors & Grant Management module
 - [ ] **Step 4.13** Vendor Portal & Compliance modulenter
 - [ ] **Step 6.5** Integrations + API Management + MCP admin

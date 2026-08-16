@@ -21,6 +21,7 @@ import { ProcurementModule } from "./modules/procurement/procurement.module.js";
 import { InventoryModule } from "./modules/inventory/inventory.module.js";
 import { FinanceModule } from "./modules/finance/finance.module.js";
 import { AssetsModule } from "./modules/assets/assets.module.js";
+import { SchoolsModule } from "./modules/schools/schools.module.js";
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { AssetsModule } from "./modules/assets/assets.module.js";
     InventoryModule,
     FinanceModule,
     AssetsModule,
+    SchoolsModule,
   ],
   controllers: [HealthController, DemoController],
   providers: [
