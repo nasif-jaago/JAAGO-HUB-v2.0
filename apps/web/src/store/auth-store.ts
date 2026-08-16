@@ -25,10 +25,10 @@ interface AuthStore {
 export const useAuthStore = create<AuthStore>((set, get) => ({
   user: {
     id: "00000000-0000-0000-0000-000000000001",
-    email: "admin@jaago.com.bd",
-    displayName: "Nasif Kamal",
+    email: "nasif.kamal@jaago.com.bd",
+    displayName: "Nasif Kamal | Coordinator, Tech 4 Development",
     orgId: "00000000-0000-0000-0000-000000000000",
-    roles: ["SuperAdmin"],
+    roles: ["SUPER_ADMIN"],
     permissions: ["*"],
     mfaEnabled: true,
   },
