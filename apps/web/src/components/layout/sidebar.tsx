@@ -122,24 +122,24 @@ export function Sidebar() {
           isSidebarCollapsed ? "md:w-20" : "md:w-72",
         )}
       >
-        {/* Top Brand Banner Card with Official JAAGO Logo & Yellow Neon Border */}
-        <div className="p-3 pb-1">
-          <div className="relative overflow-hidden rounded-2xl bg-[#FFC72C] p-1 shadow-[0_0_14px_rgba(255,199,44,0.6)] border-2 border-[#FFC72C] hover:shadow-[0_0_20px_rgba(255,199,44,0.85)] transition-all duration-300 flex items-center justify-center">
-            <Link href="/" className="flex items-center justify-center w-full py-0.5">
+        {/* Top Brand Banner Card with Official JAAGO Logo and Yellow Neon Glow Border */}
+        <div className="p-3">
+          <div className="relative overflow-hidden rounded-2xl bg-[#FFC72C] p-1.5 text-black border-2 border-[#FFE500] shadow-[0_0_15px_rgba(255,229,0,0.7),0_0_30px_rgba(245,158,11,0.4)] hover:shadow-[0_0_22px_rgba(255,229,0,0.9),0_0_40px_rgba(245,158,11,0.6)] transition-all duration-300 flex items-center justify-center">
+            <Link href="/" className="flex items-center justify-center w-full">
               <img
                 src="/jaago-logo.png"
                 alt="JAAGO Foundation"
-                className="w-full h-10 sm:h-11 object-contain rounded-xl"
+                className="w-full h-16 sm:h-20 object-contain rounded-xl"
               />
             </Link>
 
             {/* Mobile close button */}
             <button
               onClick={() => setMobileSidebarOpen(false)}
-              className="absolute top-1.5 right-1.5 p-1 text-black/70 hover:text-black md:hidden"
+              className="absolute top-2 right-2 p-1 text-black/70 hover:text-black md:hidden"
               aria-label="Close Sidebar"
             >
-              <X className="w-3.5 h-3.5" />
+              <X className="w-4 h-4" />
             </button>
           </div>
         </div>
