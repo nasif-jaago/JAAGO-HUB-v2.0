@@ -97,14 +97,14 @@
   - [x] Demo endpoint with OpenAPI decoration
   - [x] ✓ Checkpoint: demo endpoint returns envelope + correlationId in logs
 
-- [ ] **Step 1.9** Scaffold `apps/web` (Next.js App Router)
-  - [ ] Mobile-first app shell (Sidebar, Topbar, PageHeader, Breadcrumbs)
-  - [ ] Responsive: drawer (mobile) / icon rail (tablet) / full sidebar (laptop+)
-  - [ ] Semantic design tokens + breakpoints
-  - [ ] `loading.tsx`, `error.tsx`, `not-found.tsx`
-  - [ ] Thin BFF route handler forwarding session to `apps/api`
-  - [ ] PWA: web manifest + service worker (static-asset caching)
-  - [ ] ✓ Checkpoint: shell renders + usable at all breakpoints; installable; fetches demo endpoint via BFF
+- [x] **Step 1.9** Scaffold `apps/web` (Next.js App Router)
+  - [x] Mobile-first app shell (Sidebar, Topbar, PageHeader, Breadcrumbs)
+  - [x] Responsive: drawer (mobile) / icon rail (tablet) / full sidebar (laptop+)
+  - [x] Semantic design tokens + breakpoints
+  - [x] `loading.tsx`, `error.tsx`, `not-found.tsx`
+  - [x] Thin BFF route handler forwarding session to `apps/api`
+  - [x] PWA: web manifest + service worker (static-asset caching)
+  - [x] ✓ Checkpoint: shell renders + usable at all breakpoints; installable; fetches demo endpoint via BFF
 
 - [ ] **Step 1.10** `apps/worker` + Docker + CI
   - [ ] BullMQ consumer bootstrap
@@ -233,3 +233,4 @@ Top 3 for immediate attention:
 | 2026-08-16 | Step 1.6 | packages/database Drizzle ORM schema, BaseRepository with unbounded query prevention, RLS migration, 8 unit tests passing |
 | 2026-08-16 | Step 1.7 | packages/cache, packages/queue, packages/events (Redis locks, BullMQ queue manager, EventBus & Outbox publisher, 10 unit tests passing) |
 | 2026-08-16 | Step 1.8 | apps/api NestJS Fastify scaffold, global guards (auth, tenant, permission), interceptors (correlation-id, logging, transform), global exception filter, OpenAPI docs, health & ping endpoints |
+| 2026-08-16 | Step 1.9 | apps/web Next.js 15 App Router scaffold, responsive mobile-first AppShell (Sidebar, Topbar, PageHeader), dark design tokens, BFF proxy route handler, PWA manifest & service worker |
