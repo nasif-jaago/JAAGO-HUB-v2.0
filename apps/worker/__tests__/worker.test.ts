@@ -15,7 +15,13 @@ describe("Worker Processors", () => {
       data: {
         to: "nasif@jaago.com.bd",
         subject: "Your Leave Request has been approved",
-        templateId: "leave-approved-v1",
+        templateId: "leave_decision",
+        templateVariables: {
+          employeeName: "Nasif Kamal",
+          leaveType: "Annual Leave",
+          days: 2,
+          status: "APPROVED",
+        },
         correlationId: "cor_test_123",
         orgId: "org_1",
         timestamp: new Date().toISOString(),
@@ -29,7 +35,7 @@ describe("Worker Processors", () => {
     expect(result.messageId.length).toBeGreaterThan(5);
   });
 
-  it("processes cleanup job successfully", async () => {
+  it("processes session and temp resource cleanup jobs", async () => {
     const fakeJob = {
       id: "job_clean_1",
       data: {
@@ -43,6 +49,25 @@ describe("Worker Processors", () => {
     const result = await processCleanupJob(fakeJob);
 
     expect(result.success).toBe(true);
-    expect(result.cleanedCount).toBe(0);
+    expect(result.cleanedCount).toBeGreaterThan(0);
+    expect(result.taskName).toBe("purge_expired_sessions");
+  });
+
+  it("processes stale exports cleanup job", async () => {
+    const fakeJob = {
+      id: "job_clean_2",
+      data: {
+        taskName: "purge_stale_exports",
+        correlationId: "cor_clean_2",
+        orgId: "org_1",
+        retentionDays: 7,
+        timestamp: new Date().toISOString(),
+      },
+    } as unknown as Job<CleanupJobData>;
+
+    const result = await processCleanupJob(fakeJob);
+
+    expect(result.success).toBe(true);
+    expect(result.cleanedCount).toBe(8);
   });
 });

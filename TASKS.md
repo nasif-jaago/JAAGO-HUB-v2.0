@@ -133,34 +133,28 @@
 - [x] **Step 3.2** Email service (provider-agnostic, templated, queued)
 - [x] **Step 3.3** Notifications + Notification Center UI
 - [x] **Step 3.4** File storage abstraction
-- [ ] **Step 3.5** Temporary Resource Lifecycle & Cleanup
+- [x] **Step 3.5** Temporary Resource Lifecycle & Cleanup
 - [x] **Step 3.6** Reference-number service
 
----
-
-## PHASE 4 — Module Framework & Reusable Infra
-
-- [ ] **Step 4.1** ModuleContract runtime + module registry
-- [ ] **Step 4.2** Module generator CLI
-- [ ] **Step 4.3** Approval/Workflow engine
-- [ ] **Step 4.4** Shared UI library (`packages/ui`)
-- [ ] **Step 4.5** Import/Export + Reporting infrastructure
+- ✓ **Phase 3 DoD:** audit log sealed & verified; emails sent via worker; notification center updates live; storage providers tested; cleanup job purges expired resources; references generated.
 
 ---
 
-## PHASE 5 — First Business Slice
+## PHASE 4 — Domain Modules (Vertical Slices)
 
-- [ ] **Step 5.1** Employees module (backend + frontend, mobile-verified)
-- [ ] **Step 5.2** Leave management (apply/approve/balance/calendar)
-
----
-
-## PHASE 6 — Operations Admin / System Control Center
-
-- [ ] **Step 6.1** Observability & Logs Center UI
-- [ ] **Step 6.2** Background Jobs Center
-- [ ] **Step 6.3** Cache Management Center
-- [ ] **Step 6.4** Storage & Cleanup Center
+- [x] **Step 4.1** Module registry & domain event contracts
+- [x] **Step 4.2** Approvals Engine (multi-tier, threshold-based, dynamic delegation)
+- [ ] **Step 4.3** HR: Employees module
+- [ ] **Step 4.4** HR: Leave module (quota, accrual, approval hook)
+- [ ] **Step 4.5** HR: Attendance module (biometric + geofenced check-in)
+- [ ] **Step 4.6** HR: Recruitment & Onboarding module
+- [ ] **Step 4.7** Procurement: PR → Quotation → Comparison → PO
+- [ ] **Step 4.8** Inventory: Goods Receipt (GRN) → Stock Ledger → Dispatch
+- [ ] **Step 4.9** Finance: Chart of Accounts → Journal/Payment Vouchers → Approval
+- [ ] **Step 4.10** Fixed Assets & Fleet management module
+- [ ] **Step 4.11** Field Programmes & School Operations module
+- [ ] **Step 4.12** Donors & Grant Management module
+- [ ] **Step 4.13** Vendor Portal & Compliance modulenter
 - [ ] **Step 6.5** Integrations + API Management + MCP admin
 - [ ] **Step 6.6** Backup & Recovery Center
 - [ ] **Step 6.7** System dashboard + health overview
@@ -244,4 +238,7 @@ Top 3 for immediate attention:
 | 2026-08-16 | Step 3.2 | Email Service & Templates: Provider-agnostic engine (Mock, SMTP) with HTML templates (welcome, leave decision) and BullMQ worker queue |
 | 2026-08-16 | Step 3.3 | Notification Center UI: In-app notification service with real-time polling popover, unread counter badges, and mark-as-read transitions |
 | 2026-08-16 | Step 3.4 | File Storage Abstraction: Pluggable storage providers (Mock, Supabase Storage, S3) with signed URLs and buffer uploads |
+| 2026-08-16 | Step 3.5 | Temporary Resource Cleanup: BullMQ maintenance worker processor for session expiry, temp files, and stale export purges |
 | 2026-08-16 | Step 3.6 | Reference Number Service: Enterprise sequential code generator for PR, PO, GRN, Leave, Vouchers, and Asset tags |
+| 2026-08-16 | Step 4.1 | Module Registry & Domain Events: SYSTEM_MODULES catalog + domain event contracts (HR, Procurement, Finance, Approvals) |
+| 2026-08-16 | Step 4.2 | Approvals Engine & Dashboard: Multi-tier threshold approval engine with delegation and dedicated UI (/approvals) |

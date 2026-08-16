@@ -12,3 +12,4 @@ export * from "./auth/index.js";
 export * from "./hr/index.js";
 export * from "./procurement/index.js";
 export * from "./finance/index.js";
+export * from "./modules/registry.js";
