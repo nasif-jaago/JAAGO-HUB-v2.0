@@ -22,6 +22,7 @@ import { InventoryModule } from "./modules/inventory/inventory.module.js";
 import { FinanceModule } from "./modules/finance/finance.module.js";
 import { AssetsModule } from "./modules/assets/assets.module.js";
 import { SchoolsModule } from "./modules/schools/schools.module.js";
+import { DonorsModule } from "./modules/donors/donors.module.js";
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { SchoolsModule } from "./modules/schools/schools.module.js";
     FinanceModule,
     AssetsModule,
     SchoolsModule,
+    DonorsModule,
   ],
   controllers: [HealthController, DemoController],
   providers: [
