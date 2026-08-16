@@ -21,6 +21,13 @@ import type {
   TestEmailDto,
   CreateApiTokenDto,
   ApiTokenResponseDto,
+  WebhookSubscriptionDto,
+  CreateWebhookDto,
+  McpServerConfigDto,
+  DatabaseSnapshotDto,
+  TriggerSnapshotDto,
+  PitrRestoreTestResultDto,
+  SystemTelemetryDto,
 } from "./dto/admin.dto.js";
 
 @ApiTags("Admin Settings & RBAC")
@@ -151,4 +158,67 @@ export class AdminController {
     const orgId = this.resolveOrgId(req);
     return this.adminService.revokeApiToken(orgId, id);
   }
+
+  // ─── Step 6.5: Integrations & MCP ──────────────────────────────────────────
+
+  @Public()
+  @Get("integrations/webhooks")
+  @ApiOperation({ summary: "List active webhook subscriptions" })
+  getWebhooks(): WebhookSubscriptionDto[] {
+    return this.adminService.getWebhooks();
+  }
+
+  @Public()
+  @Post("integrations/webhooks")
+  @ApiOperation({ summary: "Register a new webhook subscription" })
+  createWebhook(@Body() dto: CreateWebhookDto): WebhookSubscriptionDto {
+    return this.adminService.createWebhook(dto);
+  }
+
+  @Public()
+  @Delete("integrations/webhooks/:id")
+  @ApiOperation({ summary: "Delete a webhook subscription" })
+  deleteWebhook(@Param("id") id: string): { success: boolean } {
+    return this.adminService.deleteWebhook(id);
+  }
+
+  @Public()
+  @Get("integrations/mcp")
+  @ApiOperation({ summary: "List connected Model Context Protocol (MCP) servers" })
+  getMcpServers(): McpServerConfigDto[] {
+    return this.adminService.getMcpServers();
+  }
+
+  // ─── Step 6.6: Backup & Recovery Center ─────────────────────────────────────
+
+  @Public()
+  @Get("backups/snapshots")
+  @ApiOperation({ summary: "List database snapshots and automated backups" })
+  getSnapshots(): DatabaseSnapshotDto[] {
+    return this.adminService.getSnapshots();
+  }
+
+  @Public()
+  @Post("backups/snapshots")
+  @ApiOperation({ summary: "Trigger manual database snapshot" })
+  triggerSnapshot(@Body() dto: TriggerSnapshotDto): DatabaseSnapshotDto {
+    return this.adminService.triggerSnapshot(dto);
+  }
+
+  @Public()
+  @Post("backups/pitr-verify")
+  @ApiOperation({ summary: "Run Point-In-Time Recovery (PITR) automated drill" })
+  runPitrVerification(): PitrRestoreTestResultDto {
+    return this.adminService.runPitrVerification();
+  }
+
+  // ─── Step 6.7: System Telemetry & Health ────────────────────────────────────
+
+  @Public()
+  @Get("system/telemetry")
+  @ApiOperation({ summary: "Get live system telemetry, queue depth, cache, and database pool metrics" })
+  getSystemTelemetry(): SystemTelemetryDto {
+    return this.adminService.getSystemTelemetry();
+  }
 }
+

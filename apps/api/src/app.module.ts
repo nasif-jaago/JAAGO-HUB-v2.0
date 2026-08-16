@@ -23,6 +23,7 @@ import { FinanceModule } from "./modules/finance/finance.module.js";
 import { AssetsModule } from "./modules/assets/assets.module.js";
 import { SchoolsModule } from "./modules/schools/schools.module.js";
 import { DonorsModule } from "./modules/donors/donors.module.js";
+import { VendorsModule } from "./modules/vendors/vendors.module.js";
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { DonorsModule } from "./modules/donors/donors.module.js";
     AssetsModule,
     SchoolsModule,
     DonorsModule,
+    VendorsModule,
   ],
   controllers: [HealthController, DemoController],
   providers: [

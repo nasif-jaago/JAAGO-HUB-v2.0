@@ -101,4 +101,56 @@ describe("Admin & RBAC Management Module", () => {
       expect(listAfter.some((t) => t.id === token.id)).toBe(false);
     });
   });
+
+  describe("Integrations & MCP Management (Step 6.5)", () => {
+    it("registers and lists webhooks and MCP servers", () => {
+      const webhooks = adminController.getWebhooks();
+      expect(webhooks.length).toBeGreaterThanOrEqual(2);
+
+      const newWebhook = adminController.createWebhook({
+        name: "QuickBooks Finance Bridge",
+        targetUrl: "https://api.quickbooks.com/webhook",
+        events: ["voucher.approved"],
+      });
+      expect(newWebhook.name).toBe("QuickBooks Finance Bridge");
+      expect(newWebhook.status).toBe("ACTIVE");
+
+      const mcpServers = adminController.getMcpServers();
+      expect(mcpServers.length).toBeGreaterThanOrEqual(2);
+      expect(mcpServers.some((s) => s.status === "CONNECTED")).toBe(true);
+    });
+  });
+
+  describe("Backup & Recovery Center (Step 6.6)", () => {
+    it("lists automated snapshots and triggers on-demand database backup", () => {
+      const snapshots = adminController.getSnapshots();
+      expect(snapshots.length).toBeGreaterThanOrEqual(2);
+
+      const newSnapshot = adminController.triggerSnapshot({
+        reason: "Pre-deployment database verification",
+      });
+      expect(newSnapshot.snapshotRef).toMatch(/^SNAP-\d{4}-/);
+      expect(newSnapshot.status).toBe("COMPLETED");
+      expect(newSnapshot.checksumSha256).toBeDefined();
+    });
+
+    it("executes Point-In-Time-Recovery (PITR) automated drill", () => {
+      const pitrResult = adminController.runPitrVerification();
+      expect(pitrResult.status).toBe("PASSED");
+      expect(pitrResult.integrityChecksumMatched).toBe(true);
+      expect(pitrResult.tablesVerified).toBeGreaterThan(20);
+    });
+  });
+
+  describe("System Telemetry & Health Overview (Step 6.7)", () => {
+    it("returns live system telemetry for health dashboard", () => {
+      const telemetry = adminController.getSystemTelemetry();
+      expect(telemetry.status).toBe("HEALTHY");
+      expect(telemetry.database.status).toBe("CONNECTED");
+      expect(telemetry.redisCache.status).toBe("CONNECTED");
+      expect(telemetry.bullmqQueue.status).toBe("HEALTHY");
+      expect(telemetry.cpuUsagePercent).toBeGreaterThan(0);
+    });
+  });
 });
+

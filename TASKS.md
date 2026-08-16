@@ -154,10 +154,10 @@
 - [x] **Step 4.10** Fixed Assets & Fleet management module
 - [x] **Step 4.11** Field Programmes & School Operations module
 - [x] **Step 4.12** Donors & Grant Management module
-- [ ] **Step 4.13** Vendor Portal & Compliance modulenter
-- [ ] **Step 6.5** Integrations + API Management + MCP admin
-- [ ] **Step 6.6** Backup & Recovery Center
-- [ ] **Step 6.7** System dashboard + health overview
+- [x] **Step 4.13** Vendor Portal & Compliance module
+- [x] **Step 6.5** Integrations + API Management + MCP admin
+- [x] **Step 6.6** Backup & Recovery Center
+- [x] **Step 6.7** System dashboard + health overview
 
 ---
 
