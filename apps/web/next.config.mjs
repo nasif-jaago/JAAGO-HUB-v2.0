@@ -4,6 +4,7 @@ const nextConfig = {
   poweredByHeader: false,
   compress: true,
   distDir: process.env.NODE_ENV === "production" ? ".next" : ".next-dev",
+  devIndicators: false,
   transpilePackages: [
     "@jaago/shared-types",
     "@jaago/validation",
