@@ -422,16 +422,13 @@ export function Sidebar() {
         <div className="p-3 border-t border-border/40 bg-black/5 dark:bg-black/20 flex flex-col gap-2">
           {(!isSidebarCollapsed || isMobileSidebarOpen) ? (
             <div className="flex items-center justify-center gap-2">
-              {/* Slot 1: User Profile Avatar Button */}
+              {/* Slot 1: User Profile / Initial Icon */}
               <Link
                 href="/hr/employees"
-                className="w-10 h-10 rounded-xl bg-[#292524] dark:bg-[#1E293B] hover:bg-[#3D3835] text-white flex items-center justify-center shadow-md transition-transform hover:scale-105 relative"
+                className="w-10 h-10 rounded-full bg-[#1E2026] hover:bg-[#2A2D36] text-white flex items-center justify-center shadow-md transition-transform hover:scale-105 font-bold text-sm border border-white/10"
                 title={`My Profile (${user?.displayName || "Nasif Kamal"})`}
               >
-                <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-amber-400 to-amber-600 flex items-center justify-center text-black font-extrabold text-xs shadow-inner">
-                  {user?.displayName?.charAt(0) || user?.email?.charAt(0)?.toUpperCase() || "N"}
-                </div>
-                <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-emerald-400 ring-2 ring-[#292524]" />
+                N
               </Link>
 
               {/* Slot 2: Communications */}
