@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, Suspense } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ShieldCheck,
@@ -85,8 +86,37 @@ interface ApiToken {
 }
 
 export default function AdminSettingsPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-xs text-muted-foreground">Loading settings...</div>}>
+      <AdminSettingsContent />
+    </Suspense>
+  );
+}
+
+function AdminSettingsContent() {
   const queryClient = useQueryClient();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
   const [activeTab, setActiveTab] = useState<"rbac" | "smtp" | "attendance" | "api-tokens" | "security" | "about">("rbac");
+
+  useEffect(() => {
+    const tabParam = searchParams.get("tab");
+    if (tabParam) {
+      if (tabParam === "roles" || tabParam === "rbac") setActiveTab("rbac");
+      else if (tabParam === "smtp" || tabParam === "email") setActiveTab("smtp");
+      else if (tabParam === "attendance" || tabParam === "geofence") setActiveTab("attendance");
+      else if (tabParam === "api-tokens" || tabParam === "tokens") setActiveTab("api-tokens");
+      else if (tabParam === "security") setActiveTab("security");
+      else if (tabParam === "about" || tabParam === "architecture") setActiveTab("about");
+    }
+  }, [searchParams]);
+
+  const handleTabChange = (tab: typeof activeTab) => {
+    setActiveTab(tab);
+    router.replace(`/admin/settings?tab=${tab}`);
+  };
+
   const [selectedRoleId, setSelectedRoleId] = useState<string>("r_admin");
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
   const [statusNotification, setStatusNotification] = useState<{ type: "success" | "error"; msg: string } | null>(null);
@@ -386,7 +416,7 @@ export default function AdminSettingsPage() {
           return (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id as typeof activeTab)}
+              onClick={() => handleTabChange(tab.id as typeof activeTab)}
               className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
                 isActive
                   ? "bg-primary text-primary-foreground shadow-md shadow-primary/20"
