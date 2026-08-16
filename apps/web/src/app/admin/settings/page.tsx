@@ -1,13 +1,9 @@
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  ShieldCheck,
-  Mail,
-  Key,
-  Lock,
   Plus,
   Trash2,
   CheckCircle2,
@@ -19,7 +15,6 @@ import {
   Check,
   MapPin,
   Edit3,
-  Cpu,
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { apiClient } from "@/lib/api-client";
@@ -96,7 +91,6 @@ export default function AdminSettingsPage() {
 function AdminSettingsContent() {
   const queryClient = useQueryClient();
   const searchParams = useSearchParams();
-  const router = useRouter();
 
   const [activeTab, setActiveTab] = useState<"rbac" | "smtp" | "attendance" | "api-tokens" | "security" | "about">("rbac");
 
@@ -111,11 +105,6 @@ function AdminSettingsContent() {
       else if (tabParam === "about" || tabParam === "architecture") setActiveTab("about");
     }
   }, [searchParams]);
-
-  const handleTabChange = (tab: typeof activeTab) => {
-    setActiveTab(tab);
-    router.replace(`/admin/settings?tab=${tab}`);
-  };
 
   const [selectedRoleId, setSelectedRoleId] = useState<string>("r_admin");
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
@@ -400,35 +389,6 @@ function AdminSettingsContent() {
           <span>{statusNotification.msg}</span>
         </div>
       )}
-
-      {/* Tabs Navigation */}
-      <div className="flex items-center gap-2 border-b border-border/40 pb-1 overflow-x-auto">
-        {[
-          { id: "rbac", label: "RBAC & Role Matrix", icon: ShieldCheck },
-          { id: "smtp", label: "Email Server (SMTP)", icon: Mail },
-          { id: "attendance", label: "Attendance & Geofencing", icon: MapPin },
-          { id: "api-tokens", label: "API & Access Tokens", icon: Key },
-          { id: "security", label: "Security & MFA Policies", icon: Lock },
-          { id: "about", label: "About & Architecture", icon: Cpu },
-        ].map((tab) => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => handleTabChange(tab.id as typeof activeTab)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
-                isActive
-                  ? "bg-primary text-primary-foreground shadow-md shadow-primary/20"
-                  : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
-              }`}
-            >
-              <Icon className="w-4 h-4" />
-              <span>{tab.label}</span>
-            </button>
-          );
-        })}
-      </div>
 
       {/* ─── TAB 1: RBAC & ROLE MATRIX ─────────────────────────────────────── */}
       {activeTab === "rbac" && (
