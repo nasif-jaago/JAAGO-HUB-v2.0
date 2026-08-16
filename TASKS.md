@@ -146,7 +146,7 @@
 - [x] **Step 4.2** Approvals Engine (multi-tier, threshold-based, dynamic delegation)
 - [x] **Step 4.3** HR: Employees module
 - [x] **Step 4.4** HR: Leave module (quota, accrual, approval hook)
-- [ ] **Step 4.5** HR: Attendance module (biometric + geofenced check-in)
+- [x] **Step 4.5** HR: Attendance module (biometric + geofenced check-in)
 - [ ] **Step 4.6** HR: Recruitment & Onboarding module
 - [ ] **Step 4.7** Procurement: PR → Quotation → Comparison → PO
 - [ ] **Step 4.8** Inventory: Goods Receipt (GRN) → Stock Ledger → Dispatch
@@ -244,3 +244,4 @@ Top 3 for immediate attention:
 | 2026-08-16 | Step 4.2 | Approvals Engine & Dashboard: Multi-tier threshold approval engine with delegation and dedicated UI (/approvals) |
 | 2026-08-16 | Step 4.3 | HR Employees Master Directory: Staff directory CRUD, auto EMP-code generation, department/branch filters, and UI (/hr/employees) |
 | 2026-08-16 | Step 4.4 | HR Leave & Time-Off: Bangladesh quota management (Annual, Sick, Casual, Maternity), application modal, and approvals integration (/hr/leave) |
+| 2026-08-16 | Step 4.5 | HR Attendance & Admin Geofencing: Haversine geofence calculation, live mobile GPS clock-in (/hr/attendance), and full Admin Panel branch & biometric editor (/admin/settings) |

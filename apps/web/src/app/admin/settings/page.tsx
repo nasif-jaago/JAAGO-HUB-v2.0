@@ -16,9 +16,30 @@ import {
   Save,
   Sliders,
   Check,
+  MapPin,
+  Edit3,
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { apiClient } from "@/lib/api-client";
+
+interface BranchGeofenceConfig {
+  id: string;
+  branchName: string;
+  latitude: number;
+  longitude: number;
+  allowedRadiusMeters: number;
+  biometricDeviceId?: string | undefined;
+  biometricDeviceIp?: string | undefined;
+  isActive: boolean;
+}
+
+interface AttendanceSettings {
+  enforceGeofence: boolean;
+  standardWorkHours: number;
+  shiftStartTime: string;
+  lateGraceMinutes: number;
+  branchGeofences: BranchGeofenceConfig[];
+}
 
 interface Permission {
   id: string;
@@ -63,7 +84,7 @@ interface ApiToken {
 
 export default function AdminSettingsPage() {
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<"rbac" | "smtp" | "api-tokens" | "security">("rbac");
+  const [activeTab, setActiveTab] = useState<"rbac" | "smtp" | "attendance" | "api-tokens" | "security">("rbac");
   const [selectedRoleId, setSelectedRoleId] = useState<string>("r_admin");
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
   const [statusNotification, setStatusNotification] = useState<{ type: "success" | "error"; msg: string } | null>(null);
@@ -82,6 +103,19 @@ export default function AdminSettingsPage() {
 
   // Test email state
   const [testEmailRecipient, setTestEmailRecipient] = useState("it-admin@jaago.com.bd");
+
+  // Editing branch geofence state
+  const [editingBranch, setEditingBranch] = useState<BranchGeofenceConfig | null>(null);
+  const [showAddBranchModal, setShowAddBranchModal] = useState(false);
+  const [newBranchData, setNewBranchData] = useState({
+    branchName: "",
+    latitude: 23.7937,
+    longitude: 90.4066,
+    allowedRadiusMeters: 200,
+    biometricDeviceId: "",
+    biometricDeviceIp: "",
+    isActive: true,
+  });
 
   const notify = (type: "success" | "error", msg: string) => {
     setStatusNotification({ type, msg });
@@ -105,12 +139,67 @@ export default function AdminSettingsPage() {
     queryFn: () => apiClient<SmtpConfig>("/v1/admin/settings/email"),
   });
 
+  const { data: attendanceConfig } = useQuery<AttendanceSettings>({
+    queryKey: ["admin-attendance-config"],
+    queryFn: () => apiClient<AttendanceSettings>("/v1/attendance/config"),
+  });
+
   const { data: apiTokens = [], isLoading: isLoadingTokens } = useQuery<ApiToken[]>({
     queryKey: ["admin-api-tokens"],
     queryFn: () => apiClient<ApiToken[]>("/v1/admin/settings/api-tokens"),
   });
 
-  // ─── Mutations ─────────────────────────────────────────────────────────────
+  // ─── Attendance Mutations ──────────────────────────────────────────────────
+
+  const updateAttendanceConfigMutation = useMutation({
+    mutationFn: (dto: Partial<AttendanceSettings>) =>
+      apiClient<AttendanceSettings>("/v1/attendance/config", {
+        method: "PUT",
+        body: JSON.stringify({ ...attendanceConfig, ...dto }),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-attendance-config"] });
+      notify("success", "Attendance & Geofence policies saved successfully!");
+    },
+    onError: (err) => notify("error", err.message),
+  });
+
+  const updateBranchGeofenceMutation = useMutation({
+    mutationFn: ({ id, ...dto }: Partial<BranchGeofenceConfig> & { id: string }) =>
+      apiClient<BranchGeofenceConfig>(`/v1/attendance/config/branches/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(dto),
+      }),
+    onSuccess: (updated) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-attendance-config"] });
+      setEditingBranch(null);
+      notify("success", `Geofence & Biometric config for '${updated.branchName}' updated!`);
+    },
+    onError: (err) => notify("error", err.message),
+  });
+
+  const addBranchGeofenceMutation = useMutation({
+    mutationFn: (dto: typeof newBranchData) =>
+      apiClient<BranchGeofenceConfig>("/v1/attendance/config/branches", {
+        method: "POST",
+        body: JSON.stringify(dto),
+      }),
+    onSuccess: (created) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-attendance-config"] });
+      setShowAddBranchModal(false);
+      setNewBranchData({
+        branchName: "",
+        latitude: 23.7937,
+        longitude: 90.4066,
+        allowedRadiusMeters: 200,
+        biometricDeviceId: "",
+        biometricDeviceIp: "",
+        isActive: true,
+      });
+      notify("success", `Branch boundary for '${created.branchName}' added!`);
+    },
+    onError: (err) => notify("error", err.message),
+  });
 
   // Save role permissions
   const updateRoleMutation = useMutation({
@@ -285,6 +374,7 @@ export default function AdminSettingsPage() {
         {[
           { id: "rbac", label: "RBAC & Role Matrix", icon: ShieldCheck },
           { id: "smtp", label: "Email Server (SMTP)", icon: Mail },
+          { id: "attendance", label: "Attendance & Geofencing", icon: MapPin },
           { id: "api-tokens", label: "API & Access Tokens", icon: Key },
           { id: "security", label: "Security & MFA Policies", icon: Lock },
         ].map((tab) => {
@@ -584,6 +674,162 @@ export default function AdminSettingsPage() {
                 <Send className="w-4 h-4 text-primary" />
                 <span>{sendTestEmailMutation.isPending ? "Routing Test..." : "Dispatch Verification"}</span>
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── TAB: ATTENDANCE, GEOFENCING & BIOMETRIC HARDWARE ────────────────── */}
+      {activeTab === "attendance" && (
+        <div className="space-y-6">
+          {/* Global Policy Config */}
+          <div className="glass-card p-6 rounded-2xl space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-border/40">
+              <div>
+                <h3 className="font-semibold text-base text-foreground">Global Attendance & Shift Policies</h3>
+                <p className="text-xs text-muted-foreground">
+                  Define organizational shift parameters, grace periods, and physical boundary enforcement.
+                </p>
+              </div>
+
+              <button
+                onClick={() => setShowAddBranchModal(true)}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-bold hover:bg-primary-hover shadow-lg shadow-primary/20 transition-all self-start sm:self-auto"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Add Branch Geofence</span>
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+              <div className="p-4 rounded-xl bg-secondary/40 border border-border/40 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-foreground">Enforce Geofencing</span>
+                  <input
+                    type="checkbox"
+                    checked={attendanceConfig?.enforceGeofence ?? true}
+                    onChange={(e) =>
+                      updateAttendanceConfigMutation.mutate({
+                        enforceGeofence: e.target.checked,
+                      })
+                    }
+                    className="w-4 h-4 rounded text-primary border-border focus:ring-primary"
+                  />
+                </div>
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  Reject mobile clock-in if employee GPS is outside the authorized branch radius.
+                </p>
+              </div>
+
+              <div className="p-4 rounded-xl bg-secondary/40 border border-border/40 space-y-2">
+                <div className="text-xs font-semibold text-foreground">Late Grace Period</div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    defaultValue={attendanceConfig?.lateGraceMinutes ?? 15}
+                    onBlur={(e) =>
+                      updateAttendanceConfigMutation.mutate({
+                        lateGraceMinutes: Number(e.target.value) || 15,
+                      })
+                    }
+                    className="w-20 px-2 py-1 rounded bg-secondary border border-border/40 text-xs font-bold text-foreground"
+                  />
+                  <span className="text-xs text-muted-foreground">Minutes</span>
+                </div>
+                <p className="text-[11px] text-muted-foreground">Threshold before flagging attendance as &apos;LATE&apos;.</p>
+              </div>
+
+              <div className="p-4 rounded-xl bg-secondary/40 border border-border/40 space-y-2">
+                <div className="text-xs font-semibold text-foreground">Standard Work Hours</div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    defaultValue={attendanceConfig?.standardWorkHours ?? 8}
+                    onBlur={(e) =>
+                      updateAttendanceConfigMutation.mutate({
+                        standardWorkHours: Number(e.target.value) || 8,
+                      })
+                    }
+                    className="w-20 px-2 py-1 rounded bg-secondary border border-border/40 text-xs font-bold text-foreground"
+                  />
+                  <span className="text-xs text-muted-foreground">Hours / Shift</span>
+                </div>
+                <p className="text-[11px] text-muted-foreground">Daily baseline for full-time employees.</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Branch Geofences & Biometric Devices Table */}
+          <div className="glass-card p-6 rounded-2xl space-y-4">
+            <h3 className="font-semibold text-base text-foreground">Branch Geofence Boundaries & Biometric Devices</h3>
+            <p className="text-xs text-muted-foreground">
+              GPS coordinates, radial tolerance boundaries, and biometric clock-in terminal IPs across all school branches.
+            </p>
+
+            <div className="overflow-x-auto pt-2">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-border/40 text-muted-foreground font-semibold bg-secondary/30">
+                    <th className="p-3">Branch Location</th>
+                    <th className="p-3">GPS Coordinates</th>
+                    <th className="p-3">Allowed Radius</th>
+                    <th className="p-3">Biometric Device ID</th>
+                    <th className="p-3">Terminal IP</th>
+                    <th className="p-3">Status</th>
+                    <th className="p-3 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/20">
+                  {attendanceConfig?.branchGeofences.map((branch) => (
+                    <tr key={branch.id} className="hover:bg-secondary/20 transition-colors">
+                      <td className="p-3 font-semibold text-foreground flex items-center gap-2">
+                        <MapPin className="w-3.5 h-3.5 text-primary shrink-0" />
+                        <span>{branch.branchName}</span>
+                      </td>
+
+                      <td className="p-3 font-mono text-[11px] text-muted-foreground">
+                        {branch.latitude.toFixed(4)}, {branch.longitude.toFixed(4)}
+                      </td>
+
+                      <td className="p-3">
+                        <span className="px-2 py-0.5 rounded bg-secondary border border-border/40 font-mono text-[11px]">
+                          {branch.allowedRadiusMeters} meters
+                        </span>
+                      </td>
+
+                      <td className="p-3 font-mono text-[11px] text-foreground">
+                        {branch.biometricDeviceId || "—"}
+                      </td>
+
+                      <td className="p-3 font-mono text-[11px] text-primary">
+                        {branch.biometricDeviceIp || "—"}
+                      </td>
+
+                      <td className="p-3">
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${
+                            branch.isActive
+                              ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
+                              : "bg-secondary text-muted-foreground border border-border/40"
+                          }`}
+                        >
+                          {branch.isActive ? "Active" : "Disabled"}
+                        </span>
+                      </td>
+
+                      <td className="p-3 text-right">
+                        <button
+                          onClick={() => setEditingBranch(branch)}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-secondary hover:bg-secondary/80 text-foreground text-xs font-semibold border border-border/40 transition-colors"
+                        >
+                          <Edit3 className="w-3 h-3 text-primary" />
+                          <span>Edit</span>
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
@@ -930,6 +1176,256 @@ export default function AdminSettingsPage() {
           </div>
         </div>
       )}
+
+      {/* ─── MODAL: EDIT BRANCH GEOFENCE & BIOMETRIC HARDWARE ───────────────── */}
+      {editingBranch && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in">
+          <div className="glass-card max-w-md w-full p-6 rounded-2xl border space-y-4">
+            <h3 className="text-base font-bold text-foreground flex items-center gap-2">
+              <MapPin className="w-5 h-5 text-primary" />
+              <span>Edit Geofence Boundary & Biometrics</span>
+            </h3>
+
+            <div className="p-3 rounded-xl bg-secondary/40 border border-border/40 text-xs font-semibold text-foreground">
+              {editingBranch.branchName}
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                updateBranchGeofenceMutation.mutate(editingBranch);
+              }}
+              className="space-y-3.5"
+            >
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground">Latitude</label>
+                  <input
+                    type="number"
+                    step="0.0001"
+                    value={editingBranch.latitude}
+                    onChange={(e) =>
+                      setEditingBranch({ ...editingBranch, latitude: parseFloat(e.target.value) || 0 })
+                    }
+                    className="w-full px-3 py-2 rounded-lg bg-secondary/50 border border-border/40 text-xs text-foreground focus:outline-none focus:border-primary"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground">Longitude</label>
+                  <input
+                    type="number"
+                    step="0.0001"
+                    value={editingBranch.longitude}
+                    onChange={(e) =>
+                      setEditingBranch({ ...editingBranch, longitude: parseFloat(e.target.value) || 0 })
+                    }
+                    className="w-full px-3 py-2 rounded-lg bg-secondary/50 border border-border/40 text-xs text-foreground focus:outline-none focus:border-primary"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-muted-foreground">Allowed Radius (Meters)</label>
+                <input
+                  type="number"
+                  min="50"
+                  max="5000"
+                  value={editingBranch.allowedRadiusMeters}
+                  onChange={(e) =>
+                    setEditingBranch({ ...editingBranch, allowedRadiusMeters: parseInt(e.target.value, 10) || 200 })
+                  }
+                  className="w-full px-3 py-2 rounded-lg bg-secondary/50 border border-border/40 text-xs text-foreground focus:outline-none focus:border-primary"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground">Biometric Device ID</label>
+                  <input
+                    type="text"
+                    value={editingBranch.biometricDeviceId || ""}
+                    onChange={(e) =>
+                      setEditingBranch({ ...editingBranch, biometricDeviceId: e.target.value })
+                    }
+                    placeholder="BIO-DHK-01"
+                    className="w-full px-3 py-2 rounded-lg bg-secondary/50 border border-border/40 text-xs text-foreground focus:outline-none focus:border-primary"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground">Terminal IP</label>
+                  <input
+                    type="text"
+                    value={editingBranch.biometricDeviceIp || ""}
+                    onChange={(e) =>
+                      setEditingBranch({ ...editingBranch, biometricDeviceIp: e.target.value })
+                    }
+                    placeholder="192.168.10.50"
+                    className="w-full px-3 py-2 rounded-lg bg-secondary/50 border border-border/40 text-xs text-foreground focus:outline-none focus:border-primary"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 pt-1">
+                <input
+                  type="checkbox"
+                  id="branchActive"
+                  checked={editingBranch.isActive}
+                  onChange={(e) => setEditingBranch({ ...editingBranch, isActive: e.target.checked })}
+                  className="rounded border-border text-primary focus:ring-primary"
+                />
+                <label htmlFor="branchActive" className="text-xs text-foreground font-medium">
+                  Active for Attendance Clock-ins
+                </label>
+              </div>
+
+              <div className="pt-3 flex items-center justify-end gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setEditingBranch(null)}
+                  className="px-3.5 py-2 rounded-lg text-xs font-medium text-muted-foreground hover:bg-secondary/60 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={updateBranchGeofenceMutation.isPending}
+                  className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary-hover transition-colors disabled:opacity-60"
+                >
+                  {updateBranchGeofenceMutation.isPending ? "Saving..." : "Save Configuration"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ─── MODAL: ADD BRANCH GEOFENCE ─────────────────────────────────────── */}
+      {showAddBranchModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in">
+          <div className="glass-card max-w-md w-full p-6 rounded-2xl border space-y-4">
+            <h3 className="text-base font-bold text-foreground flex items-center gap-2">
+              <Plus className="w-5 h-5 text-primary" />
+              <span>Add School Branch Geofence</span>
+            </h3>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                addBranchGeofenceMutation.mutate(newBranchData);
+              }}
+              className="space-y-3.5"
+            >
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-muted-foreground">Branch Name</label>
+                <input
+                  type="text"
+                  value={newBranchData.branchName}
+                  onChange={(e) => setNewBranchData({ ...newBranchData, branchName: e.target.value })}
+                  placeholder="e.g. Gazipur School Branch"
+                  className="w-full px-3 py-2 rounded-lg bg-secondary/50 border border-border/40 text-xs text-foreground focus:outline-none focus:border-primary"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground">Latitude</label>
+                  <input
+                    type="number"
+                    step="0.0001"
+                    value={newBranchData.latitude}
+                    onChange={(e) =>
+                      setNewBranchData({ ...newBranchData, latitude: parseFloat(e.target.value) || 0 })
+                    }
+                    className="w-full px-3 py-2 rounded-lg bg-secondary/50 border border-border/40 text-xs text-foreground focus:outline-none focus:border-primary"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground">Longitude</label>
+                  <input
+                    type="number"
+                    step="0.0001"
+                    value={newBranchData.longitude}
+                    onChange={(e) =>
+                      setNewBranchData({ ...newBranchData, longitude: parseFloat(e.target.value) || 0 })
+                    }
+                    className="w-full px-3 py-2 rounded-lg bg-secondary/50 border border-border/40 text-xs text-foreground focus:outline-none focus:border-primary"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-muted-foreground">Allowed Radius (Meters)</label>
+                <input
+                  type="number"
+                  min="50"
+                  max="5000"
+                  value={newBranchData.allowedRadiusMeters}
+                  onChange={(e) =>
+                    setNewBranchData({ ...newBranchData, allowedRadiusMeters: parseInt(e.target.value, 10) || 200 })
+                  }
+                  className="w-full px-3 py-2 rounded-lg bg-secondary/50 border border-border/40 text-xs text-foreground focus:outline-none focus:border-primary"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground">Biometric Device ID</label>
+                  <input
+                    type="text"
+                    value={newBranchData.biometricDeviceId}
+                    onChange={(e) =>
+                      setNewBranchData({ ...newBranchData, biometricDeviceId: e.target.value })
+                    }
+                    placeholder="BIO-GAZ-01"
+                    className="w-full px-3 py-2 rounded-lg bg-secondary/50 border border-border/40 text-xs text-foreground focus:outline-none focus:border-primary"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground">Terminal IP</label>
+                  <input
+                    type="text"
+                    value={newBranchData.biometricDeviceIp}
+                    onChange={(e) =>
+                      setNewBranchData({ ...newBranchData, biometricDeviceIp: e.target.value })
+                    }
+                    placeholder="192.168.60.50"
+                    className="w-full px-3 py-2 rounded-lg bg-secondary/50 border border-border/40 text-xs text-foreground focus:outline-none focus:border-primary"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-3 flex items-center justify-end gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setShowAddBranchModal(false)}
+                  className="px-3.5 py-2 rounded-lg text-xs font-medium text-muted-foreground hover:bg-secondary/60 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={addBranchGeofenceMutation.isPending}
+                  className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary-hover transition-colors disabled:opacity-60"
+                >
+                  {addBranchGeofenceMutation.isPending ? "Adding..." : "Add Branch"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+

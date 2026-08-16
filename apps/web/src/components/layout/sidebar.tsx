@@ -6,6 +6,7 @@ import {
   LayoutDashboard,
   Users,
   CalendarCheck,
+  Fingerprint,
   ShoppingCart,
   DollarSign,
   ShieldCheck,
@@ -27,6 +28,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
   { name: "Employees", href: "/hr/employees", icon: Users },
+  { name: "Attendance", href: "/hr/attendance", icon: Fingerprint },
   { name: "Leave & Time", href: "/hr/leave", icon: CalendarCheck },
   { name: "Procurement", href: "/procurement", icon: ShoppingCart },
   { name: "Finance", href: "/finance", icon: DollarSign },
