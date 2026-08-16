@@ -4,7 +4,7 @@
   "private": true,
   "description": "JAAGO HUB Frontend — Next.js App Router",
   "scripts": {
-    "dev": "next dev --port 3000",
+    "dev": "rimraf .next && next dev --port 3000",
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
