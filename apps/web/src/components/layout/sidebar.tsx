@@ -32,7 +32,6 @@ import {
   GraduationCap,
   Building2,
   ShieldCheck,
-  Settings,
   Lock,
   Key,
   MapPin,
@@ -43,6 +42,7 @@ import {
   ChevronRight,
   MessageSquare,
   Mail,
+  Activity,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -62,7 +62,7 @@ export function Sidebar() {
   const [isRequestsOpen, setIsRequestsOpen] = useState(true);
   const [isAttendanceOpen, setIsAttendanceOpen] = useState(false);
   const [isOrgOpen, setIsOrgOpen] = useState(false);
-  const [isAdminSettingsOpen, setIsAdminSettingsOpen] = useState(true);
+  const [isAdminObservabilityOpen, setIsAdminObservabilityOpen] = useState(true);
 
   const requestSubItems = [
     { name: "All Requests", href: "/approvals", icon: FileText },
@@ -93,13 +93,14 @@ export function Sidebar() {
     { name: "Performance & Appraisal", href: "/reports", icon: Star },
   ];
 
-  const adminSettingsSubItems = [
-    { name: "RBAC & Role Matrix", href: "/admin/settings?tab=rbac", icon: ShieldCheck, tab: "rbac" },
-    { name: "Email Server (SMTP)", href: "/admin/settings?tab=smtp", icon: Mail, tab: "smtp" },
-    { name: "Attendance & Geofencing", href: "/admin/settings?tab=attendance", icon: MapPin, tab: "attendance" },
-    { name: "API & Access Tokens", href: "/admin/settings?tab=api-tokens", icon: Key, tab: "api-tokens" },
-    { name: "Security & MFA Policies", href: "/admin/settings?tab=security", icon: Lock, tab: "security" },
-    { name: "About & Architecture", href: "/admin/settings?tab=about", icon: Cpu, tab: "about" },
+  const adminObservabilitySubItems = [
+    { name: "Observability Telemetry", href: "/admin/observability", icon: Activity },
+    { name: "RBAC & Role Matrix", href: "/admin/settings?tab=rbac", icon: ShieldCheck },
+    { name: "Email Server (SMTP)", href: "/admin/settings?tab=smtp", icon: Mail },
+    { name: "Attendance & Geofencing", href: "/admin/settings?tab=attendance", icon: MapPin },
+    { name: "API & Access Tokens", href: "/admin/settings?tab=api-tokens", icon: Key },
+    { name: "Security & MFA Policies", href: "/admin/settings?tab=security", icon: Lock },
+    { name: "About & Architecture", href: "/admin/settings?tab=about", icon: Cpu },
   ];
 
   const departmentItems = [
@@ -112,7 +113,6 @@ export function Sidebar() {
     { name: "Project Implementation", href: "/reports", icon: CheckSquare },
     { name: "School Operations", href: "/schools", icon: GraduationCap },
     { name: "Vendor Management", href: "/vendors", icon: Building2 },
-    { name: "Admin & Observability", href: "/admin/observability", icon: ShieldCheck },
   ];
 
   return (
@@ -324,45 +324,6 @@ export function Sidebar() {
                     </div>
                   )}
                 </div>
-
-                {/* ─── Accordion Item 5: Admin Settings ─── */}
-                <div>
-                  <button
-                    onClick={() => setIsAdminSettingsOpen(!isAdminSettingsOpen)}
-                    className="w-full flex items-center justify-between px-3 py-2 rounded-lg font-medium text-xs text-muted-foreground hover:text-foreground hover:bg-black/5 dark:hover:bg-white/5 transition-all"
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <Settings className="w-4 h-4 text-amber-500" />
-                      <span className="font-semibold">Admin Settings</span>
-                    </div>
-                    {isAdminSettingsOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-                  </button>
-
-                  {isAdminSettingsOpen && (
-                    <div className="pl-4 pt-1 space-y-0.5 border-l border-border/40 ml-2">
-                      {adminSettingsSubItems.map((sub) => {
-                        const Icon = sub.icon;
-                        const isActive = pathname === sub.href;
-                        return (
-                          <Link
-                            key={sub.name}
-                            href={sub.href}
-                            onClick={() => setMobileSidebarOpen(false)}
-                            className={cn(
-                              "flex items-center gap-2 px-2.5 py-1.5 rounded-md text-[11px] transition-all",
-                              isActive
-                                ? "bg-amber-500/15 text-amber-600 dark:text-amber-300 font-bold"
-                                : "text-muted-foreground hover:text-foreground hover:bg-black/5 dark:hover:bg-white/5",
-                            )}
-                          >
-                            <Icon className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
-                            <span className="truncate">{sub.name}</span>
-                          </Link>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
               </div>
             )}
           </div>
@@ -399,6 +360,58 @@ export function Sidebar() {
                   </Link>
                 );
               })}
+
+              {/* ─── Department Item: Admin & Observability (Expandable Accordion) ─── */}
+              <div>
+                <button
+                  onClick={() => setIsAdminObservabilityOpen(!isAdminObservabilityOpen)}
+                  className={cn(
+                    "w-full flex items-center justify-between px-3 py-2 rounded-xl font-medium text-xs transition-all group",
+                    pathname?.startsWith("/admin")
+                      ? "bg-amber-500/20 text-amber-600 dark:text-amber-300 font-bold shadow-sm"
+                      : "text-muted-foreground hover:text-foreground hover:bg-black/5 dark:hover:bg-white/5"
+                  )}
+                  title={isSidebarCollapsed ? "Admin & Observability" : undefined}
+                >
+                  <div className="flex items-center gap-3">
+                    <ShieldCheck className="w-4 h-4 shrink-0 text-amber-500" />
+                    {(!isSidebarCollapsed || isMobileSidebarOpen) && (
+                      <span className="truncate">Admin & Observability</span>
+                    )}
+                  </div>
+                  {(!isSidebarCollapsed || isMobileSidebarOpen) && (
+                    isAdminObservabilityOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />
+                  )}
+                </button>
+
+                {(!isSidebarCollapsed || isMobileSidebarOpen) && isAdminObservabilityOpen && (
+                  <div className="pl-4 pt-1 space-y-0.5 border-l border-border/40 ml-4 my-0.5">
+                    {adminObservabilitySubItems.map((sub) => {
+                      const Icon = sub.icon;
+                      const isActive =
+                        sub.href === "/admin/observability"
+                          ? pathname === "/admin/observability"
+                          : pathname === "/admin/settings" && (typeof window !== "undefined" ? window.location.search.includes(sub.href.split("?")[1] || "") : false);
+                      return (
+                        <Link
+                          key={sub.name}
+                          href={sub.href}
+                          onClick={() => setMobileSidebarOpen(false)}
+                          className={cn(
+                            "flex items-center gap-2 px-2.5 py-1.5 rounded-md text-[11px] transition-all",
+                            isActive
+                              ? "bg-amber-500/15 text-amber-600 dark:text-amber-300 font-bold"
+                              : "text-muted-foreground hover:text-foreground hover:bg-black/5 dark:hover:bg-white/5",
+                          )}
+                        >
+                          <Icon className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
+                          <span className="truncate">{sub.name}</span>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </nav>
