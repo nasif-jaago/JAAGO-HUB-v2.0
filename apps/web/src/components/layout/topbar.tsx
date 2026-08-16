@@ -17,6 +17,7 @@ import {
 import { useUiStore } from "@/store/ui-store";
 import { useAuthStore } from "@/store/auth-store";
 import { NotificationCenter } from "./notification-center";
+import { createClient } from "@/lib/supabase-client";
 
 export function Topbar() {
   const pathname = usePathname();
@@ -38,7 +39,13 @@ export function Topbar() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      const supabase = createClient();
+      await supabase.auth.signOut();
+    } catch {
+      // ignore
+    }
     logout();
     setIsUserMenuOpen(false);
     router.push("/login");
