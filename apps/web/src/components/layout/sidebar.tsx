@@ -47,9 +47,11 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUiStore } from "@/store/ui-store";
+import { useAuthStore } from "@/store/auth-store";
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { user } = useAuthStore();
   const {
     isMobileSidebarOpen,
     isSidebarCollapsed,
@@ -418,8 +420,21 @@ export function Sidebar() {
 
         {/* ─── SECTION 3: BOTTOM QUICK ACTION DOCK ───────────────────────── */}
         <div className="p-3 border-t border-border/40 bg-black/5 dark:bg-black/20 flex flex-col gap-2">
-          {(!isSidebarCollapsed || isMobileSidebarOpen) && (
+          {(!isSidebarCollapsed || isMobileSidebarOpen) ? (
             <div className="flex items-center justify-center gap-2">
+              {/* Slot 1: User Profile Avatar Button */}
+              <Link
+                href="/hr/employees"
+                className="w-10 h-10 rounded-xl bg-[#292524] dark:bg-[#1E293B] hover:bg-[#3D3835] text-white flex items-center justify-center shadow-md transition-transform hover:scale-105 relative"
+                title={`My Profile (${user?.displayName || "Nasif Kamal"})`}
+              >
+                <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-amber-400 to-amber-600 flex items-center justify-center text-black font-extrabold text-xs shadow-inner">
+                  {user?.displayName?.charAt(0) || user?.email?.charAt(0)?.toUpperCase() || "N"}
+                </div>
+                <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-emerald-400 ring-2 ring-[#292524]" />
+              </Link>
+
+              {/* Slot 2: Communications */}
               <Link
                 href="/reports"
                 className="w-10 h-10 rounded-xl bg-[#855D29] hover:bg-[#996B2E] text-white flex items-center justify-center shadow-md transition-transform hover:scale-105"
@@ -427,19 +442,34 @@ export function Sidebar() {
               >
                 <MessageSquare className="w-4 h-4" />
               </Link>
+
+              {/* Slot 3: Email & Notifications */}
               <Link
-                href="/admin/settings"
+                href="/admin/settings?tab=smtp"
                 className="w-10 h-10 rounded-xl bg-[#292524] dark:bg-[#1E293B] hover:bg-[#3D3835] text-white flex items-center justify-center shadow-md transition-transform hover:scale-105"
                 title="Email & Notifications"
               >
                 <Mail className="w-4 h-4" />
               </Link>
+
+              {/* Slot 4: Calendar & Scheduling */}
               <Link
                 href="/hr/leave"
                 className="w-10 h-10 rounded-xl bg-[#855D29] hover:bg-[#996B2E] text-white flex items-center justify-center shadow-md transition-transform hover:scale-105"
                 title="Calendar & Scheduling"
               >
                 <Calendar className="w-4 h-4" />
+              </Link>
+            </div>
+          ) : (
+            /* Collapsed Single Column */
+            <div className="flex flex-col items-center gap-1.5">
+              <Link
+                href="/hr/employees"
+                className="w-8 h-8 rounded-lg bg-[#292524] dark:bg-[#1E293B] flex items-center justify-center text-white text-xs font-bold shadow-sm"
+                title={`My Profile (${user?.displayName || "Nasif Kamal"})`}
+              >
+                {user?.displayName?.charAt(0) || user?.email?.charAt(0)?.toUpperCase() || "N"}
               </Link>
             </div>
           )}

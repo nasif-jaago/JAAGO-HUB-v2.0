@@ -3,8 +3,8 @@ const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   compress: true,
-  distDir: process.env.NODE_ENV === "production" ? ".next" : ".next-dev",
   devIndicators: false,
+  distDir: process.env.NODE_ENV === "production" ? ".next" : ".next-dev",
   transpilePackages: [
     "@jaago/shared-types",
     "@jaago/validation",
