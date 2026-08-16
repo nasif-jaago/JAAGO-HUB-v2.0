@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, jsonb, timestamp, integer, uniqueIndex } from "drizzle-orm/pg-core";
+import { pgTable, uuid, jsonb, timestamp, integer, uniqueIndex } from "drizzle-orm/pg-core";
 import { organizations } from "../system/organizations.js";
 
 export interface SmtpConfig {
