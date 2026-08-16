@@ -120,12 +120,12 @@ export default function LoginPage() {
       <div className="w-fit">
         <Link
           href="/"
-          className="inline-flex items-center justify-center p-1.5 rounded-2xl bg-[#FFC72C] shadow-md border border-amber-400/50 hover:opacity-90 transition-opacity"
+          className="inline-flex items-center justify-center p-1 rounded-2xl bg-[#FFC72C] shadow-[0_0_15px_rgba(255,199,44,0.6)] border-2 border-[#FFC72C] hover:shadow-[0_0_22px_rgba(255,199,44,0.9)] transition-all duration-300"
         >
           <img
             src="/jaago-logo.png"
             alt="JAAGO Foundation"
-            className="w-24 sm:w-28 h-auto object-contain rounded-xl"
+            className="w-20 sm:w-24 h-auto object-contain rounded-xl"
           />
         </Link>
       </div>
