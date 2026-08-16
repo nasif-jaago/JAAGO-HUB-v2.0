@@ -7,7 +7,8 @@ export type DocumentType =
   | "PAYMENT_VOUCHER"
   | "RECEIPT_VOUCHER"
   | "ASSET_TAG"
-  | "RECRUITMENT_REQUISITION";
+  | "RECRUITMENT_REQUISITION"
+  | "STOCK_DISPATCH";
 
 export interface GenerateReferenceOptions {
   documentType: DocumentType;
@@ -26,6 +27,7 @@ const DOCUMENT_PREFIXES: Record<DocumentType, string> = {
   RECEIPT_VOUCHER: "RV",
   ASSET_TAG: "AST",
   RECRUITMENT_REQUISITION: "REC",
+  STOCK_DISPATCH: "DSP",
 };
 
 /**
