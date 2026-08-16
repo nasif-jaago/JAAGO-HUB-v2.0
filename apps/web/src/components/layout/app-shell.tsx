@@ -1,34 +1,72 @@
 "use client";
 
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Sidebar } from "./sidebar";
 import { Topbar } from "./topbar";
 import { useUiStore } from "@/store/ui-store";
 import { useAuthStore } from "@/store/auth-store";
+import { createClient } from "@/lib/supabase-client";
 import { cn } from "@/lib/utils";
 
 export interface AppShellProps {
   children: ReactNode;
 }
 
+const ALLOWED_DOMAINS = ["jaago.com.bd", "emkcenter.org"];
+
 export function AppShell({ children }: AppShellProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { isSidebarCollapsed } = useUiStore();
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, setAuth } = useAuthStore();
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
   const isPublicRoute =
     pathname === "/login" ||
     pathname === "/signup" ||
-    pathname?.startsWith("/invite");
+    pathname?.startsWith("/invite") ||
+    pathname?.startsWith("/auth");
+
+  // Sync Supabase authentication on mount
+  useEffect(() => {
+    try {
+      const supabase = createClient();
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session?.user) {
+          const userEmail = session.user.email?.toLowerCase() || "";
+          const isAllowed = ALLOWED_DOMAINS.some((d) => userEmail.endsWith(`@${d}`));
+          if (isAllowed) {
+            setAuth(
+              {
+                id: session.user.id,
+                email: userEmail,
+                displayName:
+                  session.user.user_metadata?.full_name ||
+                  session.user.user_metadata?.name ||
+                  userEmail,
+                orgId: "00000000-0000-0000-0000-000000000000",
+                roles: ["SUPER_ADMIN"],
+                permissions: ["*"],
+                mfaEnabled: false,
+              },
+              session.access_token
+            );
+          }
+        }
+        setIsCheckingAuth(false);
+      });
+    } catch {
+      setIsCheckingAuth(false);
+    }
+  }, [setAuth]);
 
   // Route protection: redirect to /login if unauthenticated on private route
   useEffect(() => {
-    if (!isAuthenticated && !isPublicRoute) {
+    if (!isCheckingAuth && !isAuthenticated && !isPublicRoute) {
       router.push("/login");
     }
-  }, [isAuthenticated, isPublicRoute, router]);
+  }, [isCheckingAuth, isAuthenticated, isPublicRoute, router]);
 
   // If on login, signup, or invite pages -> Render standalone page without Sidebar or Topbar
   if (isPublicRoute) {

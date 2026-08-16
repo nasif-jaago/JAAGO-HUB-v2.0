@@ -1,14 +1,29 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Lock, Eye, EyeOff, CheckCircle2, AlertCircle, ArrowLeft } from "lucide-react";
 import { createClient } from "@/lib/supabase-client";
 import { useAuthStore } from "@/store/auth-store";
 
 export default function ResetPasswordPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center text-xs text-muted-foreground">
+          Loading...
+        </div>
+      }
+    >
+      <ResetPasswordContent />
+    </Suspense>
+  );
+}
+
+function ResetPasswordContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { setAuth } = useAuthStore();
 
   const [password, setPassword] = useState("");
@@ -16,6 +31,22 @@ export default function ResetPasswordPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [statusMessage, setStatusMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  // Check for expired/invalid reset link in query params
+  useEffect(() => {
+    const error = searchParams.get("error");
+    const errorDescription = searchParams.get("error_description");
+    const errorCode = searchParams.get("error_code");
+
+    if (errorCode === "otp_expired" || error === "access_denied") {
+      setStatusMessage({
+        type: "error",
+        text:
+          errorDescription ||
+          "This password reset link is invalid or has expired. Please request a new link from the Sign In page.",
+      });
+    }
+  }, [searchParams]);
 
   const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,7 +93,7 @@ export default function ResetPasswordPage() {
 
       setStatusMessage({
         type: "success",
-        text: "Your password has been updated successfully! Redirecting...",
+        text: "Your password has been updated successfully! Redirecting to Dashboard...",
       });
       setTimeout(() => router.push("/"), 2000);
     } catch (err: unknown) {
@@ -76,11 +107,11 @@ export default function ResetPasswordPage() {
 
   return (
     <div className="min-h-screen bg-[#F6F1E8] dark:bg-[#0F1117] text-[#292524] dark:text-[#F3F4F6] flex flex-col justify-between p-4 sm:p-8">
-      {/* Logo */}
+      {/* Top Left Logo */}
       <div className="w-fit">
         <Link
           href="/"
-          className="inline-flex items-center justify-center p-1.5 rounded-2xl bg-[#FFC72C] border-2 border-[#FFE500] shadow-[0_0_15px_rgba(255,229,0,0.7),0_0_30px_rgba(245,158,11,0.4)]"
+          className="inline-flex items-center justify-center p-1.5 rounded-2xl bg-[#FFC72C] border-2 border-[#FFE500] shadow-[0_0_15px_rgba(255,229,0,0.7),0_0_30px_rgba(245,158,11,0.4)] hover:shadow-[0_0_22px_rgba(255,229,0,0.9),0_0_40px_rgba(245,158,11,0.6)] transition-all duration-300"
         >
           <img
             src="/jaago-logo.png"
@@ -90,7 +121,7 @@ export default function ResetPasswordPage() {
         </Link>
       </div>
 
-      {/* Main Card */}
+      {/* Main Form Card */}
       <div className="flex-1 flex items-center justify-center my-6">
         <div className="w-full max-w-md rounded-3xl bg-white dark:bg-[#181B22] border border-black/5 dark:border-white/10 shadow-2xl p-6 sm:p-10 space-y-6">
           <div className="space-y-1">
@@ -174,6 +205,7 @@ export default function ResetPasswordPage() {
         </div>
       </div>
 
+      {/* Footer */}
       <footer className="text-center text-[10px] text-muted-foreground/60 tracking-wider">
         © 2026 <span className="font-bold text-amber-500">JAAGO</span> HUB ECOSYSTEM
       </footer>

@@ -26,22 +26,14 @@ interface AuthStore {
 export const useAuthStore = create<AuthStore>()(
   persist(
     (set, get) => ({
-      user: {
-        id: "00000000-0000-0000-0000-000000000001",
-        email: "nasif.kamal@jaago.com.bd",
-        displayName: "Nasif Kamal | Coordinator, Tech 4 Development",
-        orgId: "00000000-0000-0000-0000-000000000000",
-        roles: ["SUPER_ADMIN"],
-        permissions: ["*"],
-        mfaEnabled: true,
-      },
-      accessToken: "mock_jwt_token_development",
-      isAuthenticated: true,
+      user: null,
+      accessToken: null,
+      isAuthenticated: false,
 
       setAuth: (user, token) =>
         set({
           user,
-          accessToken: token ?? "mock_jwt_token_development",
+          accessToken: token ?? null,
           isAuthenticated: true,
         }),
 
