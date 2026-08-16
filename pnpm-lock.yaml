@@ -244,6 +244,9 @@ importers:
       '@jaago/events':
         specifier: workspace:*
         version: link:../../packages/events
+      '@jaago/integrations':
+        specifier: workspace:*
+        version: link:../../packages/integrations
       '@jaago/logger':
         specifier: workspace:*
         version: link:../../packages/logger
@@ -440,6 +443,9 @@ importers:
       '@jaago/config-typescript':
         specifier: workspace:*
         version: link:../config/typescript
+      '@types/node':
+        specifier: ^22.15.32
+        version: 22.20.1
       rimraf:
         specifier: ^6.0.1
         version: 6.1.3

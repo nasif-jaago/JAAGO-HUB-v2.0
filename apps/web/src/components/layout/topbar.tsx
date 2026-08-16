@@ -3,11 +3,11 @@
 import { usePathname } from "next/navigation";
 import {
   Menu,
-  Bell,
   Search,
   Building2,
 } from "lucide-react";
 import { useUiStore } from "@/store/ui-store";
+import { NotificationCenter } from "./notification-center";
 
 export function Topbar() {
   const pathname = usePathname();
@@ -59,14 +59,8 @@ export function Topbar() {
           <span className="font-medium text-foreground">JAAGO Foundation (HQ)</span>
         </div>
 
-        {/* Notifications button */}
-        <button
-          className="relative p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary/60 transition-colors"
-          aria-label="Notifications"
-        >
-          <Bell className="w-5 h-5" />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-jaago-red ring-2 ring-background" />
-        </button>
+        {/* Notifications Popover */}
+        <NotificationCenter />
 
         {/* User avatar */}
         <div className="flex items-center gap-2.5 pl-2 sm:border-l border-border/40">

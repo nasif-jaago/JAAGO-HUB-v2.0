@@ -129,12 +129,12 @@
 
 ## PHASE 3 — Core Platform Services
 
-- [ ] **Step 3.1** Audit logging (tamper-evident, hash-chained)
-- [ ] **Step 3.2** Email service (provider-agnostic, templated, queued)
-- [ ] **Step 3.3** Notifications + Notification Center UI
-- [ ] **Step 3.4** File storage abstraction
+- [x] **Step 3.1** Audit logging (tamper-evident, hash-chained)
+- [x] **Step 3.2** Email service (provider-agnostic, templated, queued)
+- [x] **Step 3.3** Notifications + Notification Center UI
+- [x] **Step 3.4** File storage abstraction
 - [ ] **Step 3.5** Temporary Resource Lifecycle & Cleanup
-- [ ] **Step 3.6** Reference-number service
+- [x] **Step 3.6** Reference-number service
 
 ---
 
@@ -240,3 +240,8 @@ Top 3 for immediate attention:
 | 2026-08-16 | Step 2.4 | Supabase Auth & JWT: ApiAuthModule with login, signup, TOTP MFA challenge/verify and setup flows |
 | 2026-08-16 | Step 2.5 | Sessions & Invitations: Active device session tracking, revocation, and token-based invitation acceptance |
 | 2026-08-16 | Step 2.6 | Frontend Auth & RBAC Gates: Responsive /login, /signup, /invite/[token] pages, Zustand useAuthStore, and declarative <PermissionGate> component |
+| 2026-08-16 | Step 3.1 | Tamper-Evident Audit Logging: SHA-256 hash chaining on all log records with automatic integrity verification |
+| 2026-08-16 | Step 3.2 | Email Service & Templates: Provider-agnostic engine (Mock, SMTP) with HTML templates (welcome, leave decision) and BullMQ worker queue |
+| 2026-08-16 | Step 3.3 | Notification Center UI: In-app notification service with real-time polling popover, unread counter badges, and mark-as-read transitions |
+| 2026-08-16 | Step 3.4 | File Storage Abstraction: Pluggable storage providers (Mock, Supabase Storage, S3) with signed URLs and buffer uploads |
+| 2026-08-16 | Step 3.6 | Reference Number Service: Enterprise sequential code generator for PR, PO, GRN, Leave, Vouchers, and Asset tags |
