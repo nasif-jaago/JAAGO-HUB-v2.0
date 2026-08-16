@@ -121,9 +121,9 @@
 - [x] **Step 2.1** Data model: users, employees, organizations, offices, departments, roles, permissions, etc.
 - [x] **Step 2.2** Tenant-context guard + RLS enabled & forced on all identity tables
 - [x] **Step 2.3** RBAC + dynamic Admin Settings in `apps/api` and `apps/web` (Live RBAC matrix, SMTP setup, API tokens)
-- [ ] **Step 2.4** Supabase Auth: email + Google OAuth + MFA
-- [ ] **Step 2.5** Sessions/devices + login audit + invitation flow
-- [ ] **Step 2.6** Frontend auth pages + `<PermissionGate>` + permission-filtered Sidebar
+- [x] **Step 2.4** Supabase Auth: email + Google OAuth + MFA
+- [x] **Step 2.5** Sessions/devices + login audit + invitation flow
+- [x] **Step 2.6** Frontend auth pages + `<PermissionGate>` + permission-filtered Sidebar
 
 ---
 
@@ -237,3 +237,6 @@ Top 3 for immediate attention:
 | 2026-08-16 | Step 2.1 | IAM Data Model: Drizzle ORM schemas + PostgreSQL migration (users, employees, organizations, offices, departments, roles, permissions, user_roles, role_permissions, invitations, sessions) with 14 database unit tests passing |
 | 2026-08-16 | Step 2.2 | RLS Policies & Tenant Isolation: PostgreSQL RLS enabled and forced across all IAM tables with current_org_id() and super_admin bypass helpers |
 | 2026-08-16 | Step 2.3 | Dynamic Admin Settings & RBAC: NestJS AdminModule (/api/v1/admin/rbac/roles, permissions, /admin/settings/email, /admin/settings/api-tokens) connected to Next.js Admin Settings UI (/admin/settings) with 7 unit tests passing |
+| 2026-08-16 | Step 2.4 | Supabase Auth & JWT: ApiAuthModule with login, signup, TOTP MFA challenge/verify and setup flows |
+| 2026-08-16 | Step 2.5 | Sessions & Invitations: Active device session tracking, revocation, and token-based invitation acceptance |
+| 2026-08-16 | Step 2.6 | Frontend Auth & RBAC Gates: Responsive /login, /signup, /invite/[token] pages, Zustand useAuthStore, and declarative <PermissionGate> component |

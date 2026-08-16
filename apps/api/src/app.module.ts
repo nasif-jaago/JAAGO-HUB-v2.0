@@ -10,9 +10,10 @@ import { GlobalExceptionFilter } from "./common/filters/global-exception.filter.
 import { HealthController } from "./health/health.controller.js";
 import { DemoController } from "./demo/demo.controller.js";
 import { AdminModule } from "./modules/admin/admin.module.js";
+import { ApiAuthModule } from "./modules/auth/auth.module.js";
 
 @Module({
-  imports: [AdminModule],
+  imports: [AdminModule, ApiAuthModule],
   controllers: [HealthController, DemoController],
   providers: [
     // Global Exception Filter
