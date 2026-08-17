@@ -7,21 +7,6 @@ import { Public } from "../common/decorators/require-permission.decorator.js";
 @Controller()
 export class HealthController {
   @Public()
-  @Get()
-  @ApiOperation({ summary: "JAAGO HUB API root info" })
-  async root() {
-    return {
-      service: "JAAGO HUB v2.0 Enterprise API",
-      status: "online",
-      version: "2.0.0",
-      documentation: "/api/docs",
-      healthCheck: "/health",
-      frontend: "http://localhost:3000",
-      timestamp: new Date().toISOString(),
-    };
-  }
-
-  @Public()
   @Get("health")
   @ApiOperation({ summary: "System health check with component probes" })
   @ApiResponse({ status: 200, description: "System is healthy or degraded" })

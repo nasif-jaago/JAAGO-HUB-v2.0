@@ -115,12 +115,3 @@
 ::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--muted-foreground) / 0.5);
 }
-
-/* Hide Next.js floating dev indicator badge */
-nextjs-portal,
-#nextjs-dev-indicator,
-[data-nextjs-toast],
-[data-nextjs-dialog-overlay] {
-  display: none !important;
-}
-
