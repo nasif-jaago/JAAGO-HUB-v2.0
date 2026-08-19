@@ -337,6 +337,34 @@ export function Sidebar() {
               </div>
             )}
 
+            {/* Prominent People and Culture Portal Link (Opens in New Tab) */}
+            <div className="px-1 mb-1.5">
+              <a
+                href="/people-culture/dashboard"
+                target="_blank"
+                rel="noopener noreferrer"
+                className={cn(
+                  "flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-all group shadow-xs",
+                  "bg-gradient-to-r from-amber-500/15 via-amber-500/10 to-transparent hover:from-amber-500/25 hover:to-amber-500/10 text-amber-800 dark:text-amber-200 border border-amber-500/40",
+                )}
+                title="Launch People & Culture Enterprise HR Portal in a new tab"
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className="w-6 h-6 rounded-lg bg-amber-500 text-white flex items-center justify-center font-bold text-[10px] shadow-xs">
+                    P&C
+                  </div>
+                  {(!isSidebarCollapsed || isMobileSidebarOpen) && (
+                    <span className="font-bold tracking-tight">People & Culture</span>
+                  )}
+                </div>
+                {(!isSidebarCollapsed || isMobileSidebarOpen) && (
+                  <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-md bg-amber-500 text-white flex items-center gap-1 shadow-2xs">
+                    NEW TAB ↗
+                  </span>
+                )}
+              </a>
+            </div>
+
             <div className="space-y-0.5">
               {departmentItems.map((dept) => {
                 const Icon = dept.icon;

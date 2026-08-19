@@ -25,6 +25,11 @@ import {
   Sparkles,
   Lock,
   Unlock,
+  CheckSquare,
+  Square,
+  MinusSquare,
+  Send,
+  AlertTriangle,
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { apiClient } from "@/lib/api-client";
@@ -78,6 +83,12 @@ interface BulkImportResult {
   }[];
 }
 
+interface BulkInviteResult {
+  totalRequested: number;
+  successCount: number;
+  results: UserInviteResult[];
+}
+
 const DEPARTMENTS = [
   "Executive Leadership",
   "Human Resources",
@@ -111,11 +122,16 @@ export default function AdminUsersPage() {
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [deptFilter, setDeptFilter] = useState("ALL");
 
+  // Selection states (One-to-Many selection)
+  const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set());
+
   // Modals state
   const [showAddUserModal, setShowAddUserModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [credentialsModal, setCredentialsModal] = useState<UserInviteResult | null>(null);
+  const [bulkCredentialsModal, setBulkCredentialsModal] = useState<UserInviteResult[] | null>(null);
   const [importSummaryModal, setImportSummaryModal] = useState<BulkImportResult | null>(null);
+  const [deleteConfirmModal, setDeleteConfirmModal] = useState<{ type: "single" | "bulk"; userIds: string[]; name?: string } | null>(null);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
   // Add user form state
@@ -150,6 +166,11 @@ export default function AdminUsersPage() {
     queryFn: () => apiClient<AdminUser[]>("/v1/admin/users"),
   });
 
+  const { data: pcEmployees = [] } = useQuery<{ id: string; email: string; fullName: string }[]>({
+    queryKey: ["pc", "employees"],
+    queryFn: () => apiClient<{ id: string; email: string; fullName: string }[]>("/v1/people-culture/employees"),
+  });
+
   // ─── Mutations ───────────────────────────────────────────────────────────
 
   const createUserMutation = useMutation({
@@ -170,13 +191,15 @@ export default function AdminUsersPage() {
       queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
       setShowAddUserModal(false);
       resetAddUserForm();
-      if (res.inviteResult) {
+      if (res?.inviteResult) {
         setCredentialsModal(res.inviteResult);
       }
-      showBanner("success", `User ${res.user.fullName} (${res.user.email}) successfully created.`);
+      const uName = res?.user?.fullName || "User";
+      const uEmail = res?.user?.email || "";
+      showBanner("success", `User ${uName} (${uEmail}) successfully created.`);
     },
     onError: (err: Error) => {
-      setFormError(err.message || "Failed to create user");
+      setFormError(err?.message || "Failed to create user");
     },
   });
 
@@ -185,11 +208,13 @@ export default function AdminUsersPage() {
       apiClient<UserInviteResult>(`/v1/admin/users/${userId}/invite`, { method: "POST" }),
     onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
-      setCredentialsModal(res);
-      showBanner("success", `Invitation & login link generated for ${res.email}.`);
+      if (res) {
+        setCredentialsModal(res);
+        showBanner("success", `Invitation email & temporary credentials generated for ${res?.email || "user"}.`);
+      }
     },
     onError: (err: Error) => {
-      showBanner("error", err.message || "Failed to invite user");
+      showBanner("error", err?.message || "Failed to invite user");
     },
   });
 
@@ -200,10 +225,10 @@ export default function AdminUsersPage() {
       }),
     onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
-      showBanner("success", res.message);
+      showBanner("success", res?.message || "User login access revoked successfully.");
     },
     onError: (err: Error) => {
-      showBanner("error", err.message || "Failed to revoke access");
+      showBanner("error", err?.message || "Failed to revoke access");
     },
   });
 
@@ -214,10 +239,10 @@ export default function AdminUsersPage() {
       }),
     onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
-      showBanner("success", res.message);
+      showBanner("success", res?.message || "User login access restored successfully.");
     },
     onError: (err: Error) => {
-      showBanner("error", err.message || "Failed to restore access");
+      showBanner("error", err?.message || "Failed to restore access");
     },
   });
 
@@ -226,11 +251,13 @@ export default function AdminUsersPage() {
       apiClient<UserInviteResult>(`/v1/admin/users/${userId}/reset-password`, { method: "POST" }),
     onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
-      setCredentialsModal(res);
-      showBanner("success", `Password reset for ${res.email}. New temporary credentials generated.`);
+      if (res) {
+        setCredentialsModal(res);
+        showBanner("success", `Password reset for ${res?.email || "user"}. New credentials generated.`);
+      }
     },
     onError: (err: Error) => {
-      showBanner("error", err.message || "Failed to reset password");
+      showBanner("error", err?.message || "Failed to reset password");
     },
   });
 
@@ -239,12 +266,91 @@ export default function AdminUsersPage() {
       apiClient<{ success: boolean; message: string }>(`/v1/admin/users/${userId}`, {
         method: "DELETE",
       }),
-    onSuccess: (res) => {
+    onSuccess: (res, userId) => {
       queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
-      showBanner("success", res.message);
+      setSelectedUserIds((prev) => {
+        const next = new Set(prev);
+        next.delete(userId);
+        return next;
+      });
+      setDeleteConfirmModal(null);
+      showBanner("success", res?.message || "User removed from directory.");
     },
     onError: (err: Error) => {
-      showBanner("error", err.message || "Failed to delete user");
+      showBanner("error", err?.message || "Failed to delete user");
+    },
+  });
+
+  // ─── Bulk Action Mutations ───────────────────────────────────────────────
+
+  const bulkInviteMutation = useMutation({
+    mutationFn: (userIds: string[]) =>
+      apiClient<BulkInviteResult>("/v1/admin/users/bulk-invite", {
+        method: "POST",
+        body: JSON.stringify({ userIds }),
+      }),
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
+      setSelectedUserIds(new Set());
+      if (res?.results) {
+        setBulkCredentialsModal(res.results);
+      }
+      showBanner(
+        "success",
+        `Bulk invitations dispatched: ${res?.successCount ?? 0} users received new login credentials.`,
+      );
+    },
+    onError: (err: Error) => {
+      showBanner("error", err?.message || "Failed to dispatch bulk invitations");
+    },
+  });
+
+  const bulkDeleteMutation = useMutation({
+    mutationFn: (userIds: string[]) =>
+      apiClient<{ success: boolean; deletedCount: number; message: string }>("/v1/admin/users/bulk-delete", {
+        method: "POST",
+        body: JSON.stringify({ userIds }),
+      }),
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
+      setSelectedUserIds(new Set());
+      setDeleteConfirmModal(null);
+      showBanner("success", res?.message || "Selected users deleted.");
+    },
+    onError: (err: Error) => {
+      showBanner("error", err?.message || "Failed to delete selected users");
+    },
+  });
+
+  const bulkRevokeMutation = useMutation({
+    mutationFn: (userIds: string[]) =>
+      apiClient<{ success: boolean; revokedCount: number; message: string }>("/v1/admin/users/bulk-revoke", {
+        method: "POST",
+        body: JSON.stringify({ userIds }),
+      }),
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
+      setSelectedUserIds(new Set());
+      showBanner("success", res?.message || "Selected users revoked.");
+    },
+    onError: (err: Error) => {
+      showBanner("error", err?.message || "Failed to revoke selected users");
+    },
+  });
+
+  const bulkRestoreMutation = useMutation({
+    mutationFn: (userIds: string[]) =>
+      apiClient<{ success: boolean; restoredCount: number; message: string }>("/v1/admin/users/bulk-restore", {
+        method: "POST",
+        body: JSON.stringify({ userIds }),
+      }),
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
+      setSelectedUserIds(new Set());
+      showBanner("success", res?.message || "Selected users restored.");
+    },
+    onError: (err: Error) => {
+      showBanner("error", err?.message || "Failed to restore selected users");
     },
   });
 
@@ -259,26 +365,33 @@ export default function AdminUsersPage() {
       setShowImportModal(false);
       setImportedRows([]);
       setImportFileName(null);
-      setImportSummaryModal(res);
+      if (res) {
+        setImportSummaryModal(res);
+      }
       showBanner(
         "success",
-        `Bulk import completed: ${res.successCount} users imported successfully, ${res.failedCount} failures.`,
+        `Bulk import completed: ${res?.successCount ?? 0} users imported successfully, ${res?.failedCount ?? 0} failures.`,
       );
     },
     onError: (err: Error) => {
-      setImportError(err.message || "Failed to import users");
+      setImportError(err?.message || "Failed to import users");
     },
   });
 
   // ─── Filtered Data ────────────────────────────────────────────────────────
 
   const filteredUsers = useMemo(() => {
-    return users.filter((u) => {
+    return (users || []).filter((u) => {
+      if (!u) return false;
+      const fName = u.fullName || "";
+      const email = u.email || "";
+      const desig = u.designation || "";
+
       const matchSearch =
         searchQuery === "" ||
-        u.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        u.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (u.designation && u.designation.toLowerCase().includes(searchQuery.toLowerCase()));
+        fName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        desig.toLowerCase().includes(searchQuery.toLowerCase());
 
       const matchRole = roleFilter === "ALL" || u.roleId === roleFilter || u.role === roleFilter;
       const matchStatus = statusFilter === "ALL" || u.accessStatus === statusFilter;
@@ -288,13 +401,41 @@ export default function AdminUsersPage() {
     });
   }, [users, searchQuery, roleFilter, statusFilter, deptFilter]);
 
+  // ─── Selection Helpers ───────────────────────────────────────────────────
+
+  const isAllSelected = filteredUsers.length > 0 && filteredUsers.every((u) => selectedUserIds.has(u.id));
+  const isSomeSelected = filteredUsers.some((u) => selectedUserIds.has(u.id)) && !isAllSelected;
+
+  const toggleSelectAll = () => {
+    if (isAllSelected) {
+      setSelectedUserIds(new Set());
+    } else {
+      const next = new Set<string>();
+      filteredUsers.forEach((u) => next.add(u.id));
+      setSelectedUserIds(next);
+    }
+  };
+
+  const toggleSelectUser = (id: string) => {
+    setSelectedUserIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
   // ─── KPI Metrics ──────────────────────────────────────────────────────────
 
   const kpis = useMemo(() => {
-    const total = users.length;
-    const active = users.filter((u) => u.accessStatus === "ACTIVE").length;
-    const invited = users.filter((u) => u.accessStatus === "INVITED").length;
-    const revoked = users.filter((u) => u.accessStatus === "REVOKED").length;
+    const list = users || [];
+    const total = list.length;
+    const active = list.filter((u) => u?.accessStatus === "ACTIVE").length;
+    const invited = list.filter((u) => u?.accessStatus === "INVITED").length;
+    const revoked = list.filter((u) => u?.accessStatus === "REVOKED").length;
     return { total, active, invited, revoked };
   }, [users]);
 
@@ -343,7 +484,11 @@ export default function AdminUsersPage() {
   // ─── CSV Export ───────────────────────────────────────────────────────────
 
   const handleExportCSV = () => {
-    if (filteredUsers.length === 0) return;
+    const dataToExport = selectedUserIds.size > 0
+      ? filteredUsers.filter((u) => selectedUserIds.has(u.id))
+      : filteredUsers;
+
+    if (dataToExport.length === 0) return;
 
     const headers = [
       "ID",
@@ -361,20 +506,20 @@ export default function AdminUsersPage() {
       "Created Date",
     ];
 
-    const rows = filteredUsers.map((u) => [
-      `"${u.id}"`,
-      `"${u.fullName.replace(/"/g, '""')}"`,
-      `"${u.email}"`,
-      `"${u.role}"`,
-      `"${u.department}"`,
+    const rows = dataToExport.map((u) => [
+      `"${u.id || ""}"`,
+      `"${(u.fullName || "").replace(/"/g, '""')}"`,
+      `"${u.email || ""}"`,
+      `"${u.role || ""}"`,
+      `"${u.department || ""}"`,
       `"${u.designation || ""}"`,
       `"${u.phoneNumber || ""}"`,
-      `"${u.accessStatus}"`,
-      `"${u.authProvider}"`,
+      `"${u.accessStatus || ""}"`,
+      `"${u.authProvider || ""}"`,
       `"${u.mfaEnabled ? "Yes" : "No"}"`,
       `"${u.invitedAt || ""}"`,
       `"${u.lastLoginAt || ""}"`,
-      `"${u.createdAt}"`,
+      `"${u.createdAt || ""}"`,
     ]);
 
     const csvContent = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
@@ -433,7 +578,6 @@ export default function AdminUsersPage() {
           return;
         }
 
-        // Parse rows (ignoring header)
         const parsed: {
           fullName: string;
           email: string;
@@ -446,7 +590,6 @@ export default function AdminUsersPage() {
         for (let i = 1; i < lines.length; i++) {
           const line = lines[i];
           if (!line) continue;
-          // Simple regex CSV splitter handling quotes
           const match = line.match(/(?:^|,)(?:"([^"]*)"|([^,]*))/g);
           if (match && match.length >= 2) {
             const clean = match.map((m) => m.replace(/^,/, "").replace(/^"|"$/g, "").trim());
@@ -480,56 +623,57 @@ export default function AdminUsersPage() {
       {/* Top Page Header */}
       <PageHeader
         title="System Administration: Users & Access Control"
-        description="Enterprise identity lifecycle management, Supabase Auth synchronization, automated credentials delivery, and granular permission controls."
-      >
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => refetch()}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-border bg-card hover:bg-muted/80 text-foreground transition-all shadow-xs"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? "animate-spin" : ""}`} />
-            Refresh
-          </button>
+        subtitle="Enterprise identity lifecycle management, Supabase Auth synchronization, automated credentials delivery, and granular permission controls."
+        actions={
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => refetch()}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-border bg-card hover:bg-muted/80 text-foreground transition-all shadow-xs"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? "animate-spin" : ""}`} />
+              Refresh
+            </button>
 
-          <button
-            onClick={handleDownloadSampleTemplate}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-border bg-card hover:bg-muted/80 text-foreground transition-all shadow-xs"
-            title="Download CSV sample template with proper column headers"
-          >
-            <FileSpreadsheet className="w-3.5 h-3.5 text-amber-500" />
-            Sample Template
-          </button>
+            <button
+              onClick={handleDownloadSampleTemplate}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-border bg-card hover:bg-muted/80 text-foreground transition-all shadow-xs"
+              title="Download CSV sample template with proper column headers"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5 text-amber-500" />
+              Sample Template
+            </button>
 
-          <button
-            onClick={handleExportCSV}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-border bg-card hover:bg-muted/80 text-foreground transition-all shadow-xs"
-          >
-            <Download className="w-3.5 h-3.5 text-blue-500" />
-            Export CSV
-          </button>
+            <button
+              onClick={handleExportCSV}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-border bg-card hover:bg-muted/80 text-foreground transition-all shadow-xs"
+            >
+              <Download className="w-3.5 h-3.5 text-blue-500" />
+              {selectedUserIds.size > 0 ? `Export Selected (${selectedUserIds.size})` : "Export CSV"}
+            </button>
 
-          <button
-            onClick={() => {
-              setImportedRows([]);
-              setImportFileName(null);
-              setImportError(null);
-              setShowImportModal(true);
-            }}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-border bg-card hover:bg-muted/80 text-foreground transition-all shadow-xs"
-          >
-            <Upload className="w-3.5 h-3.5 text-emerald-500" />
-            Import CSV
-          </button>
+            <button
+              onClick={() => {
+                setImportedRows([]);
+                setImportFileName(null);
+                setImportError(null);
+                setShowImportModal(true);
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-border bg-card hover:bg-muted/80 text-foreground transition-all shadow-xs"
+            >
+              <Upload className="w-3.5 h-3.5 text-emerald-500" />
+              Import CSV
+            </button>
 
-          <button
-            onClick={() => setShowAddUserModal(true)}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-amber-500 hover:bg-amber-600 text-white transition-all shadow-sm active:scale-95"
-          >
-            <UserPlus className="w-3.5 h-3.5" />
-            Add User
-          </button>
-        </div>
-      </PageHeader>
+            <button
+              onClick={() => setShowAddUserModal(true)}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-amber-500 hover:bg-amber-600 text-white transition-all shadow-sm active:scale-95"
+            >
+              <UserPlus className="w-3.5 h-3.5" />
+              Add User
+            </button>
+          </div>
+        }
+      />
 
       {/* Global Status Banner */}
       {banner && (
@@ -671,32 +815,114 @@ export default function AdminUsersPage() {
         </div>
       </div>
 
-      {/* Main Users Table */}
+      {/* ─── FLOATING BULK ACTIONS TOOLBAR ────────────────────────────────── */}
+      {selectedUserIds.size > 0 && (
+        <div className="sticky top-4 z-30 p-3 rounded-2xl bg-amber-500 text-white shadow-xl flex flex-wrap items-center justify-between gap-3 animate-in slide-in-from-top-3 duration-200">
+          <div className="flex items-center gap-2 text-xs font-bold pl-2">
+            <CheckSquare className="w-4 h-4" />
+            <span>{selectedUserIds.size} {selectedUserIds.size === 1 ? "user" : "users"} selected</span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {/* Bulk Invite Action */}
+            <button
+              onClick={() => bulkInviteMutation.mutate(Array.from(selectedUserIds))}
+              disabled={bulkInviteMutation.isPending}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/20 hover:bg-white/30 text-white text-xs font-semibold backdrop-blur-xs transition-all shadow-xs"
+            >
+              <Send className="w-3.5 h-3.5" />
+              {bulkInviteMutation.isPending ? "Inviting..." : `Bulk Invite (${selectedUserIds.size})`}
+            </button>
+
+            {/* Bulk Revoke Action */}
+            <button
+              onClick={() => bulkRevokeMutation.mutate(Array.from(selectedUserIds))}
+              disabled={bulkRevokeMutation.isPending}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/20 hover:bg-white/30 text-white text-xs font-semibold backdrop-blur-xs transition-all shadow-xs"
+            >
+              <Lock className="w-3.5 h-3.5" />
+              Revoke Access
+            </button>
+
+            {/* Bulk Restore Action */}
+            <button
+              onClick={() => bulkRestoreMutation.mutate(Array.from(selectedUserIds))}
+              disabled={bulkRestoreMutation.isPending}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/20 hover:bg-white/30 text-white text-xs font-semibold backdrop-blur-xs transition-all shadow-xs"
+            >
+              <Unlock className="w-3.5 h-3.5" />
+              Restore Access
+            </button>
+
+            {/* Bulk Delete Action */}
+            <button
+              onClick={() =>
+                setDeleteConfirmModal({
+                  type: "bulk",
+                  userIds: Array.from(selectedUserIds),
+                })
+              }
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold transition-all shadow-xs"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              Delete Selected
+            </button>
+
+            {/* Deselect All */}
+            <button
+              onClick={() => setSelectedUserIds(new Set())}
+              className="p-1.5 hover:bg-white/20 rounded-lg text-white"
+              title="Deselect All"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Main Users Table with One-to-Many Multi-Select */}
       <div className="rounded-xl border border-border bg-card shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse">
             <thead>
               <tr className="border-b border-border/80 bg-muted/40 text-muted-foreground font-semibold">
-                <th className="py-3 px-4">User</th>
+                {/* Select All Checkbox Column */}
+                <th className="py-3 px-3 w-10 text-center">
+                  <button
+                    onClick={toggleSelectAll}
+                    className="p-1 hover:bg-muted rounded text-foreground transition-colors"
+                    title={isAllSelected ? "Deselect All" : "Select All"}
+                  >
+                    {isAllSelected ? (
+                      <CheckSquare className="w-4 h-4 text-amber-500" />
+                    ) : isSomeSelected ? (
+                      <MinusSquare className="w-4 h-4 text-amber-500" />
+                    ) : (
+                      <Square className="w-4 h-4 text-muted-foreground" />
+                    )}
+                  </button>
+                </th>
+                <th className="py-3 px-3">User</th>
                 <th className="py-3 px-3">Role</th>
                 <th className="py-3 px-3">Department</th>
                 <th className="py-3 px-3">Auth / MFA</th>
                 <th className="py-3 px-3 text-center">Login Access</th>
                 <th className="py-3 px-3">Last Active</th>
                 <th className="py-3 px-4 text-right">Actions</th>
+                <th className="py-3 px-4 text-center font-bold text-amber-700 dark:text-amber-300">Create Employee</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/60">
               {isLoading ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-muted-foreground">
+                  <td colSpan={9} className="py-12 text-center text-muted-foreground">
                     <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2 text-amber-500" />
                     Loading system user directory...
                   </td>
                 </tr>
               ) : filteredUsers.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-muted-foreground">
+                  <td colSpan={9} className="py-12 text-center text-muted-foreground">
                     <Users className="w-8 h-8 mx-auto mb-2 opacity-30" />
                     No users found matching current filters.
                   </td>
@@ -706,21 +932,36 @@ export default function AdminUsersPage() {
                   const isRevoked = user.accessStatus === "REVOKED";
                   const isInvited = user.accessStatus === "INVITED";
                   const isActive = user.accessStatus === "ACTIVE";
+                  const isSelected = selectedUserIds.has(user.id);
 
                   return (
                     <tr
                       key={user.id}
                       className={`hover:bg-muted/30 transition-colors ${
-                        isRevoked ? "opacity-60 bg-red-500/[0.02]" : ""
+                        isSelected ? "bg-amber-500/10 dark:bg-amber-500/15" : isRevoked ? "opacity-60 bg-red-500/[0.02]" : ""
                       }`}
                     >
+                      {/* Individual Checkbox */}
+                      <td className="py-3 px-3 text-center">
+                        <button
+                          onClick={() => toggleSelectUser(user.id)}
+                          className="p-1 hover:bg-muted rounded transition-colors"
+                        >
+                          {isSelected ? (
+                            <CheckSquare className="w-4 h-4 text-amber-500" />
+                          ) : (
+                            <Square className="w-4 h-4 text-muted-foreground hover:text-foreground" />
+                          )}
+                        </button>
+                      </td>
+
                       {/* User Column */}
-                      <td className="py-3 px-4">
+                      <td className="py-3 px-3">
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 font-bold flex items-center justify-center text-xs shrink-0">
-                            {user.fullName
+                            {(user.fullName || "User")
                               .split(" ")
-                              .map((n) => n[0])
+                              .map((n) => n[0] || "")
                               .slice(0, 2)
                               .join("")
                               .toUpperCase()}
@@ -824,7 +1065,7 @@ export default function AdminUsersPage() {
                           <button
                             onClick={() => inviteUserMutation.mutate(user.id)}
                             disabled={inviteUserMutation.isPending}
-                            className="p-1.5 text-amber-600 hover:bg-amber-500/10 rounded-md transition-colors"
+                            className="p-1.5 text-amber-600 hover:bg-amber-500/15 rounded-md transition-colors"
                             title="Send/Re-send invitation email with temporary credentials"
                           >
                             <Mail className="w-3.5 h-3.5" />
@@ -834,7 +1075,7 @@ export default function AdminUsersPage() {
                           <button
                             onClick={() => resetPasswordMutation.mutate(user.id)}
                             disabled={resetPasswordMutation.isPending}
-                            className="p-1.5 text-blue-600 hover:bg-blue-500/10 rounded-md transition-colors"
+                            className="p-1.5 text-blue-600 hover:bg-blue-500/15 rounded-md transition-colors"
                             title="Generate new temporary password & trigger email"
                           >
                             <KeyRound className="w-3.5 h-3.5" />
@@ -845,48 +1086,67 @@ export default function AdminUsersPage() {
                             <button
                               onClick={() => restoreUserMutation.mutate(user.id)}
                               disabled={restoreUserMutation.isPending}
-                              className="p-1.5 text-emerald-600 hover:bg-emerald-500/10 rounded-md transition-colors"
+                              className="p-1.5 text-emerald-600 hover:bg-emerald-500/15 rounded-md transition-colors"
                               title="Restore login access for this user"
                             >
                               <Unlock className="w-3.5 h-3.5" />
                             </button>
                           ) : (
                             <button
-                              onClick={() => {
-                                if (
-                                  confirm(
-                                    `Are you sure you want to revoke login access for ${user.fullName} (${user.email})?`,
-                                  )
-                                ) {
-                                  revokeUserMutation.mutate(user.id);
-                                }
-                              }}
+                              onClick={() => revokeUserMutation.mutate(user.id)}
                               disabled={revokeUserMutation.isPending}
-                              className="p-1.5 text-rose-600 hover:bg-rose-500/10 rounded-md transition-colors"
+                              className="p-1.5 text-rose-600 hover:bg-rose-500/15 rounded-md transition-colors"
                               title="Revoke / Suspend login access"
                             >
                               <Lock className="w-3.5 h-3.5" />
                             </button>
                           )}
 
-                          {/* Delete User Button */}
+                          {/* Delete User Button with Confirmation Modal */}
                           <button
-                            onClick={() => {
-                              if (
-                                confirm(
-                                  `Permanently delete user record for ${user.fullName}? This cannot be undone.`,
-                                )
-                              ) {
-                                deleteUserMutation.mutate(user.id);
-                              }
-                            }}
+                            onClick={() =>
+                              setDeleteConfirmModal({
+                                type: "single",
+                                userIds: [user.id],
+                                name: user.fullName,
+                              })
+                            }
                             disabled={deleteUserMutation.isPending}
-                            className="p-1.5 text-muted-foreground hover:text-rose-600 hover:bg-rose-500/10 rounded-md transition-colors"
-                            title="Delete user from directory"
+                            className="p-1.5 text-muted-foreground hover:text-rose-600 hover:bg-rose-500/15 rounded-md transition-colors"
+                            title="Delete user record"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
+                      </td>
+
+                      {/* Create Employee Column */}
+                      <td className="py-3 px-4 text-center">
+                        {pcEmployees.some((e) => e.email?.toLowerCase() === user.email?.toLowerCase()) ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                            <Check className="w-3 h-3 text-emerald-500" />
+                            Employee Linked
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => {
+                              const query = new URLSearchParams({
+                                new: "true",
+                                name: user.fullName || "",
+                                email: user.email || "",
+                                dept: user.department || "",
+                                desig: user.designation || user.role || "",
+                                phone: user.phoneNumber || "",
+                              }).toString();
+                              window.open(`/people-culture/employees?${query}`, "_blank");
+                            }}
+                            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-[11px] font-bold bg-amber-500 hover:bg-amber-600 text-white shadow-xs transition-all active:scale-95 whitespace-nowrap"
+                            title="Create Employee profile for this User in People & Culture"
+                          >
+                            <UserPlus className="w-3.5 h-3.5" />
+                            <span>+ Create Employee</span>
+                          </button>
+                        )}
                       </td>
                     </tr>
                   );
@@ -1055,7 +1315,7 @@ export default function AdminUsersPage() {
         </div>
       )}
 
-      {/* ─── MODAL 2: Credentials & Login Information Modal ─────────────── */}
+      {/* ─── MODAL 2: Single User Credentials Modal ──────────────────────── */}
       {credentialsModal && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200">
@@ -1074,7 +1334,7 @@ export default function AdminUsersPage() {
 
             <div className="text-xs text-muted-foreground">
               Login access has been provisioned for{" "}
-              <span className="font-semibold text-foreground">{credentialsModal.email}</span>. An email with login
+              <span className="font-semibold text-foreground">{credentialsModal.email || "user"}</span>. An email with login
               instructions was dispatched. You can also copy the temporary credentials below to share directly:
             </div>
 
@@ -1167,7 +1427,150 @@ export default function AdminUsersPage() {
         </div>
       )}
 
-      {/* ─── MODAL 3: Bulk Import CSV Modal ──────────────────────────────── */}
+      {/* ─── MODAL 3: Bulk Invites Credentials Modal ─────────────────────── */}
+      {bulkCredentialsModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="w-full max-w-xl rounded-2xl border border-border bg-card p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-border">
+              <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-semibold text-sm">
+                <CheckCircle2 className="w-4 h-4" />
+                Bulk Invitations Dispatched ({bulkCredentialsModal.length} Users)
+              </div>
+              <button
+                onClick={() => setBulkCredentialsModal(null)}
+                className="p-1 hover:bg-muted rounded-md text-muted-foreground"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="text-xs text-muted-foreground">
+              Invitations have been sent to all {bulkCredentialsModal.length} users. You can download or copy all credentials below:
+            </div>
+
+            <div className="max-h-60 overflow-y-auto rounded-xl border border-border text-xs">
+              <table className="w-full text-left">
+                <thead className="bg-muted/60 text-muted-foreground font-semibold sticky top-0">
+                  <tr className="border-b border-border">
+                    <th className="py-2 px-3">Email</th>
+                    <th className="py-2 px-3">Temporary Password</th>
+                    <th className="py-2 px-3 text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/60 font-mono">
+                  {bulkCredentialsModal.map((item, idx) => (
+                    <tr key={idx} className="hover:bg-muted/30">
+                      <td className="py-2 px-3 text-foreground">{item.email}</td>
+                      <td className="py-2 px-3 text-amber-600 dark:text-amber-400 font-semibold">
+                        {item.temporaryPassword}
+                      </td>
+                      <td className="py-2 px-3 text-right">
+                        <button
+                          onClick={() => copyToClipboard(`${item.email} / ${item.temporaryPassword}`, `bulk_${idx}`)}
+                          className="p-1 hover:bg-muted rounded"
+                          title="Copy details"
+                        >
+                          {copiedKey === `bulk_${idx}` ? (
+                            <Check className="w-3 h-3 text-emerald-500" />
+                          ) : (
+                            <Copy className="w-3 h-3 text-muted-foreground" />
+                          )}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="flex items-center justify-between pt-2">
+              <button
+                onClick={() => {
+                  const csvData = [
+                    ["Email", "Temporary Password", "Login Portal"].join(","),
+                    ...bulkCredentialsModal.map((u) =>
+                      [`"${u.email || ""}"`, `"${u.temporaryPassword || ""}"`, '"http://hub.jaago.com.bd/login"'].join(","),
+                    ),
+                  ].join("\n");
+
+                  const blob = new Blob([csvData], { type: "text/csv;charset=utf-8;" });
+                  const url = URL.createObjectURL(blob);
+                  const link = document.createElement("a");
+                  link.setAttribute("href", url);
+                  link.setAttribute("download", `jaago_bulk_invitations_${new Date().toISOString().slice(0, 10)}.csv`);
+                  document.body.appendChild(link);
+                  link.click();
+                  document.body.removeChild(link);
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border border-border bg-card hover:bg-muted text-foreground"
+              >
+                <Download className="w-3.5 h-3.5 text-blue-500" />
+                Download Credentials CSV
+              </button>
+
+              <button
+                onClick={() => setBulkCredentialsModal(null)}
+                className="px-4 py-1.5 text-xs font-semibold rounded-lg bg-amber-500 hover:bg-amber-600 text-white"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── MODAL 4: Delete Confirmation Modal ──────────────────────────── */}
+      {deleteConfirmModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="w-full max-w-sm rounded-2xl border border-border bg-card p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center gap-2.5 text-rose-600 font-semibold text-sm">
+              <AlertTriangle className="w-5 h-5" />
+              Confirm Deletion
+            </div>
+
+            <div className="text-xs text-muted-foreground">
+              {deleteConfirmModal.type === "single" ? (
+                <>
+                  Are you sure you want to permanently delete user{" "}
+                  <span className="font-semibold text-foreground">{deleteConfirmModal.name || "this user"}</span>? This action cannot be
+                  undone.
+                </>
+              ) : (
+                <>
+                  Are you sure you want to permanently delete{" "}
+                  <span className="font-semibold text-foreground">{deleteConfirmModal.userIds.length} selected users</span>?
+                  This action cannot be undone.
+                </>
+              )}
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                onClick={() => setDeleteConfirmModal(null)}
+                className="px-3.5 py-1.5 text-xs rounded-lg border border-border bg-card text-foreground hover:bg-muted"
+              >
+                Cancel
+              </button>
+
+              <button
+                onClick={() => {
+                  if (deleteConfirmModal.type === "single" && deleteConfirmModal.userIds[0]) {
+                    deleteUserMutation.mutate(deleteConfirmModal.userIds[0]);
+                  } else {
+                    bulkDeleteMutation.mutate(deleteConfirmModal.userIds);
+                  }
+                }}
+                disabled={deleteUserMutation.isPending || bulkDeleteMutation.isPending}
+                className="px-4 py-1.5 text-xs font-semibold rounded-lg bg-rose-600 hover:bg-rose-700 text-white shadow-sm"
+              >
+                {deleteUserMutation.isPending || bulkDeleteMutation.isPending ? "Deleting..." : "Yes, Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── MODAL 5: Bulk Import CSV Modal ──────────────────────────────── */}
       {showImportModal && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="w-full max-w-xl rounded-2xl border border-border bg-card p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
@@ -1196,7 +1599,6 @@ export default function AdminUsersPage() {
               . Download the sample template if needed.
             </div>
 
-            {/* Drag & Drop / File Input Box */}
             <div
               onClick={() => fileInputRef.current?.click()}
               className="border-2 border-dashed border-border hover:border-amber-500/60 rounded-xl p-6 text-center cursor-pointer bg-muted/20 hover:bg-muted/40 transition-all space-y-2"
@@ -1222,7 +1624,6 @@ export default function AdminUsersPage() {
               </div>
             )}
 
-            {/* Parsed Rows Preview */}
             {importedRows.length > 0 && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-xs font-semibold text-foreground">
@@ -1290,7 +1691,7 @@ export default function AdminUsersPage() {
         </div>
       )}
 
-      {/* ─── MODAL 4: Bulk Import Summary Report Modal ────────────────────── */}
+      {/* ─── MODAL 6: Import Summary Report Modal ────────────────────────── */}
       {importSummaryModal && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="w-full max-w-xl rounded-2xl border border-border bg-card p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
@@ -1326,8 +1727,7 @@ export default function AdminUsersPage() {
               </div>
             </div>
 
-            {/* Created Users Credentials List */}
-            {importSummaryModal.createdUsers.length > 0 && (
+            {importSummaryModal.createdUsers && importSummaryModal.createdUsers.length > 0 && (
               <div className="space-y-2">
                 <div className="text-xs font-semibold text-foreground">
                   Generated Temporary Login Credentials ({importSummaryModal.createdUsers.length}):
@@ -1357,8 +1757,7 @@ export default function AdminUsersPage() {
               </div>
             )}
 
-            {/* Errors List if any */}
-            {importSummaryModal.errors.length > 0 && (
+            {importSummaryModal.errors && importSummaryModal.errors.length > 0 && (
               <div className="space-y-1.5">
                 <div className="text-xs font-semibold text-rose-600">Import Errors:</div>
                 <div className="max-h-32 overflow-y-auto rounded-lg border border-rose-500/30 bg-rose-500/5 p-2.5 space-y-1 text-xs text-rose-700 dark:text-rose-300">
@@ -1377,8 +1776,8 @@ export default function AdminUsersPage() {
                 onClick={() => {
                   const csvData = [
                     ["Full Name", "Email", "Role", "Temporary Password", "Portal URL"].join(","),
-                    ...importSummaryModal.createdUsers.map((u) =>
-                      [`"${u.fullName}"`, `"${u.email}"`, `"${u.role}"`, `"${u.temporaryPassword}"`, '"http://hub.jaago.com.bd/login"'].join(
+                    ...(importSummaryModal.createdUsers || []).map((u) =>
+                      [`"${u.fullName || ""}"`, `"${u.email || ""}"`, `"${u.role || ""}"`, `"${u.temporaryPassword || ""}"`, '"http://hub.jaago.com.bd/login"'].join(
                         ",",
                       ),
                     ),

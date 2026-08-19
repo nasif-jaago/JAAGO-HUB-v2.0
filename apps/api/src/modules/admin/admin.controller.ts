@@ -126,12 +126,13 @@ export class AdminController {
   @Public()
   @Post("settings/email/test")
   @ApiOperation({ summary: "Dispatch test email using active SMTP configuration" })
-  sendTestEmail(
+  async sendTestEmail(
     @Req() req: { tenant?: { orgId?: string }; headers?: Record<string, string> },
     @Body() dto: TestEmailDto,
   ): Promise<{ success: boolean; message: string }> {
     const orgId = this.resolveOrgId(req);
-    return this.adminService.sendTestEmail(orgId, dto.recipientEmail);
+    const recipient = dto?.recipientEmail || "nasif.kamal@jaago.com.bd";
+    return await this.adminService.sendTestEmail(orgId, recipient);
   }
 
   // ─── API Tokens & Secret Keys ──────────────────────────────────────────────
@@ -232,114 +233,163 @@ export class AdminController {
 
   @Public()
   @Get("users")
-  @ApiOperation({ summary: "List all users in the system with login access status" })
-  getUsers(
+  @ApiOperation({ summary: "Get all users in directory" })
+  async getUsers(
     @Req() req: { tenant?: { orgId?: string }; headers?: Record<string, string> },
-  ): AdminUserDto[] {
+  ): Promise<AdminUserDto[]> {
     const orgId = this.resolveOrgId(req);
-    return this.adminService.getUsers(orgId);
+    return await this.adminService.getUsers(orgId);
   }
 
   @Public()
   @Get("users/:id")
   @ApiOperation({ summary: "Get single user details by ID" })
-  getUserById(
+  async getUserById(
     @Req() req: { tenant?: { orgId?: string }; headers?: Record<string, string> },
     @Param("id") id: string,
-  ): AdminUserDto {
+  ): Promise<AdminUserDto> {
     const orgId = this.resolveOrgId(req);
-    return this.adminService.getUserById(orgId, id);
+    return await this.adminService.getUserById(orgId, id);
   }
 
   @Public()
   @Post("users")
   @ApiOperation({ summary: "Create a new user and optionally dispatch invite email with temp password" })
-  createUser(
+  async createUser(
     @Req() req: { tenant?: { orgId?: string }; headers?: Record<string, string> },
     @Body() dto: CreateAdminUserDto,
-  ): { user: AdminUserDto; inviteResult?: UserInviteResultDto | undefined } {
+  ): Promise<{ user: AdminUserDto; inviteResult?: UserInviteResultDto | undefined }> {
     const orgId = this.resolveOrgId(req);
-    return this.adminService.createUser(orgId, dto);
+    return await this.adminService.createUser(orgId, dto);
   }
 
   @Public()
   @Post("users/:id/invite")
   @ApiOperation({ summary: "Dispatch invitation email with login link and temporary credentials" })
-  inviteUser(
+  async inviteUser(
     @Req() req: { tenant?: { orgId?: string }; headers?: Record<string, string> },
     @Param("id") id: string,
-  ): UserInviteResultDto {
+  ): Promise<UserInviteResultDto> {
     const orgId = this.resolveOrgId(req);
-    return this.adminService.inviteUser(orgId, id);
+    return await this.adminService.inviteUser(orgId, id);
   }
 
   @Public()
   @Patch("users/:id/revoke")
   @ApiOperation({ summary: "Revoke user login access and invalidate active sessions" })
-  revokeUserAccess(
+  async revokeUserAccess(
     @Req() req: { tenant?: { orgId?: string }; headers?: Record<string, string> },
     @Param("id") id: string,
-  ): { success: boolean; user: AdminUserDto; message: string } {
+  ): Promise<{ success: boolean; user: AdminUserDto; message: string }> {
     const orgId = this.resolveOrgId(req);
-    return this.adminService.revokeUserAccess(orgId, id);
+    return await this.adminService.revokeUserAccess(orgId, id);
   }
 
   @Public()
   @Patch("users/:id/restore")
   @ApiOperation({ summary: "Restore user login access" })
-  restoreUserAccess(
+  async restoreUserAccess(
     @Req() req: { tenant?: { orgId?: string }; headers?: Record<string, string> },
     @Param("id") id: string,
-  ): { success: boolean; user: AdminUserDto; message: string } {
+  ): Promise<{ success: boolean; user: AdminUserDto; message: string }> {
     const orgId = this.resolveOrgId(req);
-    return this.adminService.restoreUserAccess(orgId, id);
+    return await this.adminService.restoreUserAccess(orgId, id);
   }
 
   @Public()
   @Post("users/:id/reset-password")
   @ApiOperation({ summary: "Reset password, generate new credentials and send email" })
-  resetUserPassword(
+  async resetUserPassword(
     @Req() req: { tenant?: { orgId?: string }; headers?: Record<string, string> },
     @Param("id") id: string,
-  ): UserInviteResultDto {
+  ): Promise<UserInviteResultDto> {
     const orgId = this.resolveOrgId(req);
-    return this.adminService.resetUserPassword(orgId, id);
+    return await this.adminService.resetUserPassword(orgId, id);
   }
 
   @Public()
   @Put("users/:id")
   @ApiOperation({ summary: "Update user profile, role, or department" })
-  updateUser(
+  async updateUser(
     @Req() req: { tenant?: { orgId?: string }; headers?: Record<string, string> },
     @Param("id") id: string,
     @Body() dto: UpdateAdminUserDto,
-  ): AdminUserDto {
+  ): Promise<AdminUserDto> {
     const orgId = this.resolveOrgId(req);
-    return this.adminService.updateUser(orgId, id, dto);
+    return await this.adminService.updateUser(orgId, id, dto);
   }
 
   @Public()
   @Delete("users/:id")
   @ApiOperation({ summary: "Permanently remove user from system directory" })
-  deleteUser(
+  async deleteUser(
     @Req() req: { tenant?: { orgId?: string }; headers?: Record<string, string> },
     @Param("id") id: string,
-  ): { success: boolean; message: string } {
+  ): Promise<{ success: boolean; message: string }> {
     const orgId = this.resolveOrgId(req);
-    return this.adminService.deleteUser(orgId, id);
+    return await this.adminService.deleteUser(orgId, id);
   }
 
   @Public()
   @Post("users/import")
   @ApiOperation({ summary: "Bulk import users from CSV/JSON payload" })
-  bulkImportUsers(
+  async bulkImportUsers(
     @Req() req: { tenant?: { orgId?: string }; headers?: Record<string, string> },
     @Body() body: { users: BulkImportUserItemDto[] },
-  ): BulkImportResultDto {
+  ): Promise<BulkImportResultDto> {
     const orgId = this.resolveOrgId(req);
     const users = Array.isArray(body.users) ? body.users : [];
-    return this.adminService.bulkImportUsers(orgId, users);
+    return await this.adminService.bulkImportUsers(orgId, users);
+  }
+
+  @Public()
+  @Post("users/bulk-invite")
+  @ApiOperation({ summary: "Bulk invite selected users and generate credentials" })
+  async bulkInviteUsers(
+    @Req() req: { tenant?: { orgId?: string }; headers?: Record<string, string> },
+    @Body() body: { userIds: string[] },
+  ): Promise<{ totalRequested: number; successCount: number; results: UserInviteResultDto[] }> {
+    const orgId = this.resolveOrgId(req);
+    const userIds = Array.isArray(body.userIds) ? body.userIds : [];
+    return await this.adminService.bulkInviteUsers(orgId, userIds);
+  }
+
+  @Public()
+  @Post("users/bulk-delete")
+  @ApiOperation({ summary: "Bulk delete selected users" })
+  async bulkDeleteUsers(
+    @Req() req: { tenant?: { orgId?: string }; headers?: Record<string, string> },
+    @Body() body: { userIds: string[] },
+  ): Promise<{ success: boolean; deletedCount: number; message: string }> {
+    const orgId = this.resolveOrgId(req);
+    const userIds = Array.isArray(body.userIds) ? body.userIds : [];
+    return await this.adminService.bulkDeleteUsers(orgId, userIds);
+  }
+
+  @Public()
+  @Post("users/bulk-revoke")
+  @ApiOperation({ summary: "Bulk revoke login access for selected users" })
+  async bulkRevokeUsers(
+    @Req() req: { tenant?: { orgId?: string }; headers?: Record<string, string> },
+    @Body() body: { userIds: string[] },
+  ): Promise<{ success: boolean; revokedCount: number; message: string }> {
+    const orgId = this.resolveOrgId(req);
+    const userIds = Array.isArray(body.userIds) ? body.userIds : [];
+    return await this.adminService.bulkRevokeUsers(orgId, userIds);
+  }
+
+  @Public()
+  @Post("users/bulk-restore")
+  @ApiOperation({ summary: "Bulk restore login access for selected users" })
+  async bulkRestoreUsers(
+    @Req() req: { tenant?: { orgId?: string }; headers?: Record<string, string> },
+    @Body() body: { userIds: string[] },
+  ): Promise<{ success: boolean; restoredCount: number; message: string }> {
+    const orgId = this.resolveOrgId(req);
+    const userIds = Array.isArray(body.userIds) ? body.userIds : [];
+    return await this.adminService.bulkRestoreUsers(orgId, userIds);
   }
 }
+
 
 

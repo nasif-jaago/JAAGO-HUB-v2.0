@@ -28,6 +28,8 @@ export function AppShell({ children }: AppShellProps) {
     pathname?.startsWith("/invite") ||
     pathname?.startsWith("/auth");
 
+  const isStandaloneRoute = isPublicRoute || pathname?.startsWith("/people-culture");
+
   // Sync Supabase authentication on mount
   useEffect(() => {
     try {
@@ -68,8 +70,8 @@ export function AppShell({ children }: AppShellProps) {
     }
   }, [isCheckingAuth, isAuthenticated, isPublicRoute, router]);
 
-  // If on login, signup, or invite pages -> Render standalone page without Sidebar or Topbar
-  if (isPublicRoute) {
+  // If on login, signup, invite, or standalone modules (e.g. People & Culture) -> Render standalone page without JAAGO HUB outer Sidebar/Topbar
+  if (isStandaloneRoute) {
     return (
       <div className="min-h-screen w-full bg-[#F6F1E8] dark:bg-[#0F1117] text-[#292524] dark:text-[#F3F4F6]">
         {children}

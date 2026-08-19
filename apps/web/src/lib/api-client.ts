@@ -21,13 +21,20 @@ export async function apiClient<T>(
   const normalizedPath = path.startsWith("/") ? path : `/${path}`;
   const url = normalizedPath.startsWith("/api") ? normalizedPath : `/api${normalizedPath}`;
 
-  const response = await fetch(url, {
+  const method = (options.method || "GET").toUpperCase();
+  const hasBody = options.body !== undefined && options.body !== null;
+  const isBodyMethod = method !== "GET" && method !== "HEAD";
+
+  const fetchOptions: RequestInit = {
     ...options,
     headers: {
-      "Content-Type": "application/json",
+      ...(isBodyMethod ? { "Content-Type": "application/json" } : {}),
       ...options.headers,
     },
-  });
+    ...(isBodyMethod && !hasBody ? { body: "{}" } : {}),
+  };
+
+  const response = await fetch(url, fetchOptions);
 
   const json = (await response.json()) as ApiResult<T>;
 

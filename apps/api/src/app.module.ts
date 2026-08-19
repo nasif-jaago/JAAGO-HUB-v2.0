@@ -25,6 +25,7 @@ import { SchoolsModule } from "./modules/schools/schools.module.js";
 import { DonorsModule } from "./modules/donors/donors.module.js";
 import { VendorsModule } from "./modules/vendors/vendors.module.js";
 import { ReportsModule } from "./modules/reports/reports.module.js";
+import { PeopleCultureModule } from "./modules/people-culture/people-culture.module.js";
 
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import { ReportsModule } from "./modules/reports/reports.module.js";
     DonorsModule,
     VendorsModule,
     ReportsModule,
+    PeopleCultureModule,
   ],
   controllers: [HealthController, DemoController],
   providers: [

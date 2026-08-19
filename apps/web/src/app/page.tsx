@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   Clock,
@@ -25,6 +26,17 @@ import {
 
 export default function DashboardPage() {
   const [showTaxModal, setShowTaxModal] = useState(false);
+  const router = useRouter();
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const view = params.get("view");
+      if (view === "people-hub-portal" || view === "people-and-culture") {
+        router.push("/people-culture/dashboard");
+      }
+    }
+  }, [router]);
 
   return (
     <div className="space-y-6 pb-12">

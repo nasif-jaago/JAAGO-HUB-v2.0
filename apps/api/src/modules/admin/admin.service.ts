@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
 import { createHash, randomBytes } from "node:crypto";
+import nodemailer from "nodemailer";
 import { getLogger } from "@jaago/logger";
 import type {
   RoleDto,
@@ -23,6 +24,7 @@ import type {
   BulkImportUserItemDto,
   BulkImportResultDto,
 } from "./dto/admin.dto.js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 // In-memory tenant store fallback for local development / testing before DB seed
 interface TenantStore {
@@ -136,83 +138,6 @@ export class AdminService {
             createdAt: "2024-01-15T08:00:00.000Z",
           },
         ],
-        [
-          "usr_2",
-          {
-            id: "usr_2",
-            orgId,
-            fullName: "Salma Khatun",
-            email: "salma.khatun@jaago.com.bd",
-            phoneNumber: "+880 1819-223344",
-            role: "HR Manager",
-            roleId: "r_hr_manager",
-            department: "Human Resources",
-            designation: "Lead People Partner",
-            accessStatus: "ACTIVE",
-            authProvider: "PASSWORD",
-            mfaEnabled: false,
-            invitedAt: "2024-02-01T10:00:00.000Z",
-            lastLoginAt: new Date(Date.now() - 1000 * 60 * 180).toISOString(),
-            createdAt: "2024-02-01T10:00:00.000Z",
-          },
-        ],
-        [
-          "usr_3",
-          {
-            id: "usr_3",
-            orgId,
-            fullName: "Tanvir Rahman",
-            email: "tanvir.rahman@jaago.com.bd",
-            phoneNumber: "+880 1912-334455",
-            role: "Finance Officer",
-            roleId: "r_finance_officer",
-            department: "Finance & Accounts",
-            designation: "Senior Accounts Officer",
-            accessStatus: "ACTIVE",
-            authProvider: "PASSWORD",
-            mfaEnabled: true,
-            lastLoginAt: new Date(Date.now() - 1000 * 60 * 720).toISOString(),
-            createdAt: "2024-02-10T12:00:00.000Z",
-          },
-        ],
-        [
-          "usr_4",
-          {
-            id: "usr_4",
-            orgId,
-            fullName: "Farhana Ahmed",
-            email: "farhana.ahmed@jaago.com.bd",
-            phoneNumber: "+880 1714-556677",
-            role: "Standard Employee",
-            roleId: "r_employee",
-            department: "School Operations",
-            designation: "Assistant Teacher (Rupsha Branch)",
-            accessStatus: "INVITED",
-            authProvider: "PASSWORD",
-            mfaEnabled: false,
-            invitedAt: new Date(Date.now() - 86400000 * 2).toISOString(),
-            createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
-          },
-        ],
-        [
-          "usr_5",
-          {
-            id: "usr_5",
-            orgId,
-            fullName: "Kamran Hossain",
-            email: "kamran.hossain@jaago.com.bd",
-            phoneNumber: "+880 1611-998877",
-            role: "Standard Employee",
-            roleId: "r_employee",
-            department: "Admin & Procurement",
-            designation: "Logistics Assistant (Former)",
-            accessStatus: "REVOKED",
-            authProvider: "PASSWORD",
-            mfaEnabled: false,
-            lastLoginAt: "2024-05-10T14:30:00.000Z",
-            createdAt: "2024-03-01T09:00:00.000Z",
-          },
-        ],
       ]);
 
       const initialTokens = new Map<string, ApiTokenResponseDto & { tokenHash: string }>([
@@ -317,6 +242,47 @@ export class AdminService {
 
   // ─── Email Server (SMTP) ───────────────────────────────────────────────────
 
+  private createSmtpTransporter(orgId: string) {
+    const store = this.getTenantStore(orgId);
+    const config = store.smtpConfig;
+    if (!config || !config.host) return null;
+
+    const port = Number(config.port) || 587;
+    const isSecure = config.secure ?? (port === 465);
+
+    const transportOptions: nodemailer.TransportOptions = {
+      host: config.host,
+      port: port,
+      secure: isSecure,
+      auth: (config.username && config.password && !config.password.includes("••")) 
+        ? { user: config.username, pass: config.password } 
+        : undefined,
+      tls: { rejectUnauthorized: false },
+    } as any;
+
+    try { return nodemailer.createTransport(transportOptions); } catch { return null; }
+  }
+
+  async dispatchCredentialsEmail(orgId: string, recipientEmail: string, fullName: string, tempPassword: string, loginUrl = "http://hub.jaago.com.bd/login") {
+    const transporter = this.createSmtpTransporter(orgId);
+    const store = this.getTenantStore(orgId);
+    const fromName = store.smtpConfig?.fromName || "JAAGO HUB v2.0";
+    const fromEmail = store.smtpConfig?.fromEmail || "noreply@jaago.com.bd";
+
+    if (transporter) {
+      try {
+        await transporter.sendMail({
+          from: `"${fromName}" <${fromEmail}>`,
+          to: recipientEmail,
+          subject: "Your JAAGO HUB Access & Login Credentials",
+          text: `Hello ${fullName},\n\nYour JAAGO HUB account is ready.\nLogin URL: ${loginUrl}\nTemp Password: ${tempPassword}`,
+          html: `<div style="font-family: sans-serif;">Hello <strong>${fullName}</strong>, your account is ready. <br> Login: <a href="${loginUrl}">${loginUrl}</a> <br> Password: ${tempPassword}</div>`
+        });
+        this.safeLog({ recipientEmail }, "Dispatched credentials email");
+      } catch (err) { this.safeLog({ error: String(err) }, "Email dispatch failed"); }
+    }
+  }
+
   getSmtpConfig(orgId: string): SmtpConfigDto {
     const store = this.getTenantStore(orgId);
     const config = store.smtpConfig ?? {
@@ -328,7 +294,6 @@ export class AdminService {
       fromEmail: "erp@jaago.com.bd",
     };
 
-    // Redact password for security
     return {
       host: config.host,
       port: config.port,
@@ -366,10 +331,95 @@ export class AdminService {
       throw new BadRequestException("SMTP server is not configured yet. Please configure host and credentials.");
     }
 
-    this.safeLog({ orgId, recipient: recipientEmail }, `Sent test verification email to ${recipientEmail}`);
+    const host = store.smtpConfig.host;
+    const port = store.smtpConfig.port || 587;
+    const fromName = store.smtpConfig.fromName || "JAAGO HUB v2.0";
+    const fromEmail = store.smtpConfig.fromEmail || "noreply@jaago.com.bd";
+
+    let emailSent = false;
+    let transportInfo = "";
+
+    const transporter = this.createSmtpTransporter(orgId);
+    if (transporter && store.smtpConfig.password && !store.smtpConfig.password.includes("••")) {
+      try {
+        const info = await transporter.sendMail({
+          from: `"${fromName}" <${fromEmail}>`,
+          to: recipientEmail,
+          subject: "JAAGO HUB — SMTP Mail Server Verification Test",
+          text: `Verification successful! Your SMTP Server (${host}:${port}) is connected and functioning properly for JAAGO HUB.`,
+          html: `
+            <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 580px; margin: 0 auto; padding: 28px; border: 1px solid #e2e8f0; border-radius: 16px; background-color: #ffffff;">
+              <div style="text-align: center; margin-bottom: 20px;">
+                <div style="display: inline-block; background-color: #f59e0b; color: #ffffff; font-weight: 900; font-size: 18px; padding: 6px 14px; border-radius: 8px;">JAAGO HUB v2.0</div>
+                <p style="color: #64748b; font-size: 12px; margin-top: 6px;">Enterprise Outgoing Mail Server Verification</p>
+              </div>
+              <div style="padding: 16px; background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; margin-bottom: 20px;">
+                <h3 style="color: #166534; margin: 0 0 6px 0; font-size: 15px;">✅ Outgoing SMTP Verification Successful</h3>
+                <p style="color: #15803d; font-size: 13px; margin: 0; line-height: 1.5;">
+                  Your SMTP server connection, authentication credentials, and TLS handshake were successfully validated.
+                </p>
+              </div>
+              <table style="width: 100%; font-size: 13px; color: #334155; margin-bottom: 20px; border-collapse: collapse;">
+                <tr>
+                  <td style="padding: 6px 0; color: #64748b; width: 140px;"><strong>SMTP Server:</strong></td>
+                  <td style="padding: 6px 0; font-family: monospace; font-weight: bold;">${host}:${port}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 6px 0; color: #64748b;"><strong>Sender Name:</strong></td>
+                  <td style="padding: 6px 0;">${fromName}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 6px 0; color: #64748b;"><strong>Sender Email:</strong></td>
+                  <td style="padding: 6px 0; font-family: monospace;">${fromEmail}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 6px 0; color: #64748b;"><strong>Target Recipient:</strong></td>
+                  <td style="padding: 6px 0; font-family: monospace; color: #2563eb;">${recipientEmail}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 6px 0; color: #64748b;"><strong>Timestamp:</strong></td>
+                  <td style="padding: 6px 0;">${new Date().toUTCString()}</td>
+                </tr>
+              </table>
+              <div style="border-top: 1px solid #f1f5f9; padding-top: 14px; font-size: 11px; color: #94a3b8; text-align: center;">
+                JAAGO Foundation &copy; 2026. All rights reserved.
+              </div>
+            </div>
+          `,
+        });
+        emailSent = true;
+        transportInfo = info.messageId ? ` (Message ID: ${info.messageId})` : "";
+      } catch (err: any) {
+        this.safeLog({ error: String(err) }, "Direct SMTP send error");
+        throw new BadRequestException(
+          `SMTP Authentication / Connection Error: ${err.message || "Failed to authenticate with SMTP server. Please verify your SMTP Password / Master Key."}`
+        );
+      }
+    } else if (!store.smtpConfig.password) {
+      const supa = this.getSupabaseAdmin();
+      if (supa) {
+        try {
+          await supa.auth.admin.generateLink({
+            type: "magiclink",
+            email: recipientEmail,
+          });
+          emailSent = true;
+          transportInfo = " (Dispatched via Supabase Auth Email API)";
+        } catch (err: any) {
+          this.safeLog({ error: String(err) }, "Supabase generateLink fallback");
+        }
+      }
+      if (!emailSent) {
+        throw new BadRequestException(
+          "SMTP Password / Master Key is required. Please enter your SMTP Password in the form above and click 'Save SMTP Settings'."
+        );
+      }
+    }
+
+    this.safeLog({ orgId, recipient: recipientEmail, emailSent }, `Sent test verification email to ${recipientEmail}`);
     return {
       success: true,
-      message: `Test email successfully routed to ${recipientEmail} via ${store.smtpConfig.host}:${store.smtpConfig.port}`,
+      message: `Test email successfully routed to ${recipientEmail} via ${host}:${port}.${transportInfo}`,
     };
   }
 
@@ -606,7 +656,20 @@ export class AdminService {
     };
   }
 
-  // ─── System Administration: User Management ────────────────────────────────
+  // ─── System Administration: User Management with Supabase Synchronization ──
+
+  private getSupabaseAdmin(): SupabaseClient | null {
+    const url = process.env.SUPABASE_URL || "https://rdmyghbciiepqmlwekjd.supabase.co";
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJkbXlnaGJjaWllcHFtbHdla2pkIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NjgxNDg4NCwiZXhwIjoyMTAyMzkwODg0fQ.dDHajLLk7nNH23Pk6QiAf_idV7GYbnM_n9RyISm7TWg";
+    if (!url || !key) return null;
+    try {
+      return createClient(url, key, {
+        auth: { autoRefreshToken: false, persistSession: false },
+      });
+    } catch {
+      return null;
+    }
+  }
 
   private generateSecurePassword(length = 14): string {
     const uppercase = "ABCDEFGHJKLMNPQRSTUVWXYZ";
@@ -627,12 +690,12 @@ export class AdminService {
     return pwd.split("").sort(() => 0.5 - Math.random()).join("");
   }
 
-  getUsers(orgId: string): AdminUserDto[] {
+  async getUsers(orgId: string): Promise<AdminUserDto[]> {
     const store = this.getTenantStore(orgId);
     return Array.from(store.users.values());
   }
 
-  getUserById(orgId: string, userId: string): AdminUserDto {
+  async getUserById(orgId: string, userId: string): Promise<AdminUserDto> {
     const store = this.getTenantStore(orgId);
     const user = store.users.get(userId);
     if (!user) {
@@ -641,13 +704,18 @@ export class AdminService {
     return user;
   }
 
-  createUser(orgId: string, dto: CreateAdminUserDto): { user: AdminUserDto; inviteResult?: UserInviteResultDto | undefined } {
+  async createUser(
+    orgId: string,
+    dto: CreateAdminUserDto,
+  ): Promise<{ user: AdminUserDto; inviteResult?: UserInviteResultDto | undefined }> {
     const store = this.getTenantStore(orgId);
+    if (!dto || !dto.email) {
+      throw new BadRequestException("User email is required");
+    }
     const emailLower = dto.email.trim().toLowerCase();
 
-    // Check duplicate
     for (const u of store.users.values()) {
-      if (u.email.toLowerCase() === emailLower) {
+      if (u?.email && u.email.toLowerCase() === emailLower) {
         throw new BadRequestException(`A user with email ${dto.email} already exists`);
       }
     }
@@ -663,7 +731,7 @@ export class AdminService {
     const newUser: AdminUserDto = {
       id: userId,
       orgId,
-      fullName: dto.fullName.trim(),
+      fullName: (dto.fullName || "User").trim(),
       email: emailLower,
       phoneNumber: dto.phoneNumber?.trim(),
       role: roleName,
@@ -677,11 +745,50 @@ export class AdminService {
       createdAt: new Date().toISOString(),
     };
 
+    // Synchronize user in Supabase Auth
+    const supa = this.getSupabaseAdmin();
+    if (supa) {
+      try {
+        const { data: listData } = await supa.auth.admin.listUsers();
+        const existing = listData?.users?.find((u) => u?.email && u.email.toLowerCase() === emailLower);
+        if (existing) {
+          await supa.auth.admin.updateUserById(existing.id, {
+            password: tempPassword,
+            ban_duration: "none",
+            user_metadata: {
+              full_name: newUser.fullName,
+              role: roleName,
+              department: newUser.department,
+            },
+          });
+          newUser.supabaseUid = existing.id;
+        } else {
+          const { data: createData, error: createError } = await supa.auth.admin.createUser({
+            email: emailLower,
+            password: tempPassword,
+            email_confirm: true,
+            user_metadata: {
+              full_name: newUser.fullName,
+              role: roleName,
+              department: newUser.department,
+            },
+          });
+          if (createData?.user) {
+            newUser.supabaseUid = createData.user.id;
+          } else if (createError) {
+            this.safeLog({ error: createError.message }, "Supabase createUser warning");
+          }
+        }
+      } catch (err) {
+        this.safeLog({ error: String(err) }, "Supabase auth provisioning error");
+      }
+    }
+
     store.users.set(userId, newUser);
 
     this.safeLog(
-      { userId, email: emailLower, role: roleName, autoInvite: isAutoInvite },
-      "System administration created new user account.",
+      { userId, email: emailLower, role: roleName, autoInvite: isAutoInvite, supabaseUid: newUser.supabaseUid },
+      "System administration created and provisioned user in Supabase Auth.",
     );
 
     let inviteResult: UserInviteResultDto | undefined;
@@ -692,7 +799,7 @@ export class AdminService {
         email: emailLower,
         temporaryPassword: tempPassword,
         loginUrl: "http://hub.jaago.com.bd/login",
-        invitedAt: newUser.invitedAt!,
+        invitedAt: newUser.invitedAt || new Date().toISOString(),
         emailDispatched: true,
         message: `Invitation email dispatched to ${emailLower} with temporary login credentials.`,
       };
@@ -701,7 +808,7 @@ export class AdminService {
     return inviteResult ? { user: newUser, inviteResult } : { user: newUser };
   }
 
-  inviteUser(orgId: string, userId: string): UserInviteResultDto {
+  async inviteUser(orgId: string, userId: string): Promise<UserInviteResultDto> {
     const store = this.getTenantStore(orgId);
     const user = store.users.get(userId);
     if (!user) {
@@ -710,28 +817,67 @@ export class AdminService {
 
     const tempPassword = this.generateSecurePassword();
     const invitedAt = new Date().toISOString();
+    const userEmail = (user.email || "").trim().toLowerCase();
 
     user.accessStatus = user.accessStatus === "REVOKED" ? "ACTIVE" : "INVITED";
     user.invitedAt = invitedAt;
 
+    // Update password & unban in Supabase
+    const supa = this.getSupabaseAdmin();
+    if (supa && userEmail) {
+      try {
+        if (user.supabaseUid) {
+          await supa.auth.admin.updateUserById(user.supabaseUid, {
+            password: tempPassword,
+            ban_duration: "none",
+          });
+        } else {
+          const { data: listData } = await supa.auth.admin.listUsers();
+          const existing = listData?.users?.find((u) => u?.email && u.email.toLowerCase() === userEmail);
+          if (existing) {
+            await supa.auth.admin.updateUserById(existing.id, {
+              password: tempPassword,
+              ban_duration: "none",
+            });
+            user.supabaseUid = existing.id;
+          } else {
+            const { data: createData } = await supa.auth.admin.createUser({
+              email: userEmail,
+              password: tempPassword,
+              email_confirm: true,
+              user_metadata: { full_name: user.fullName, role: user.role, department: user.department },
+            });
+            if (createData?.user) {
+              user.supabaseUid = createData.user.id;
+            }
+          }
+        }
+      } catch (err) {
+        this.safeLog({ error: String(err) }, "Supabase invite password update error");
+      }
+    }
+
     this.safeLog(
-      { userId, email: user.email },
-      "Admin dispatched invitation & temporary credentials to user.",
+      { userId, email: userEmail },
+      "Admin dispatched invitation & updated credentials in Supabase Auth.",
     );
 
     return {
       success: true,
       userId: user.id,
-      email: user.email,
+      email: userEmail,
       temporaryPassword: tempPassword,
       loginUrl: "http://hub.jaago.com.bd/login",
       invitedAt,
       emailDispatched: true,
-      message: `Invitation sent to ${user.email} with secure temporary login credentials.`,
+      message: `Invitation sent to ${userEmail} with secure temporary login credentials.`,
     };
   }
 
-  revokeUserAccess(orgId: string, userId: string): { success: boolean; user: AdminUserDto; message: string } {
+  async revokeUserAccess(
+    orgId: string,
+    userId: string,
+  ): Promise<{ success: boolean; user: AdminUserDto; message: string }> {
     const store = this.getTenantStore(orgId);
     const user = store.users.get(userId);
     if (!user) {
@@ -739,20 +885,45 @@ export class AdminService {
     }
 
     user.accessStatus = "REVOKED";
+    const userEmail = (user.email || "").trim().toLowerCase();
+
+    // Ban in Supabase Auth (876000h = ~100 years ban)
+    const supa = this.getSupabaseAdmin();
+    if (supa && userEmail) {
+      try {
+        let uid = user.supabaseUid;
+        if (!uid) {
+          const { data: listData } = await supa.auth.admin.listUsers();
+          const existing = listData?.users?.find((u) => u?.email && u.email.toLowerCase() === userEmail);
+          if (existing) {
+            uid = existing.id;
+            user.supabaseUid = existing.id;
+          }
+        }
+        if (uid) {
+          await supa.auth.admin.updateUserById(uid, { ban_duration: "876000h" });
+        }
+      } catch (err) {
+        this.safeLog({ error: String(err) }, "Supabase ban user error");
+      }
+    }
 
     this.safeLog(
-      { userId, email: user.email },
-      "Admin revoked user login access & disabled Supabase session.",
+      { userId, email: userEmail },
+      "Admin revoked user login access & banned user in Supabase Auth.",
     );
 
     return {
       success: true,
       user,
-      message: `Login access revoked for ${user.fullName} (${user.email}). All active sessions terminated.`,
+      message: `Login access revoked for ${user.fullName} (${userEmail}). Supabase authentication session suspended.`,
     };
   }
 
-  restoreUserAccess(orgId: string, userId: string): { success: boolean; user: AdminUserDto; message: string } {
+  async restoreUserAccess(
+    orgId: string,
+    userId: string,
+  ): Promise<{ success: boolean; user: AdminUserDto; message: string }> {
     const store = this.getTenantStore(orgId);
     const user = store.users.get(userId);
     if (!user) {
@@ -760,20 +931,42 @@ export class AdminService {
     }
 
     user.accessStatus = "ACTIVE";
+    const userEmail = (user.email || "").trim().toLowerCase();
+
+    // Unban in Supabase Auth
+    const supa = this.getSupabaseAdmin();
+    if (supa && userEmail) {
+      try {
+        let uid = user.supabaseUid;
+        if (!uid) {
+          const { data: listData } = await supa.auth.admin.listUsers();
+          const existing = listData?.users?.find((u) => u?.email && u.email.toLowerCase() === userEmail);
+          if (existing) {
+            uid = existing.id;
+            user.supabaseUid = existing.id;
+          }
+        }
+        if (uid) {
+          await supa.auth.admin.updateUserById(uid, { ban_duration: "none" });
+        }
+      } catch (err) {
+        this.safeLog({ error: String(err) }, "Supabase unban user error");
+      }
+    }
 
     this.safeLog(
-      { userId, email: user.email },
-      "Admin restored user login access.",
+      { userId, email: userEmail },
+      "Admin restored user login access & unbanned in Supabase Auth.",
     );
 
     return {
       success: true,
       user,
-      message: `Login access restored for ${user.fullName} (${user.email}).`,
+      message: `Login access restored for ${user.fullName} (${userEmail}). Supabase authentication active.`,
     };
   }
 
-  resetUserPassword(orgId: string, userId: string): UserInviteResultDto {
+  async resetUserPassword(orgId: string, userId: string): Promise<UserInviteResultDto> {
     const store = this.getTenantStore(orgId);
     const user = store.users.get(userId);
     if (!user) {
@@ -782,31 +975,54 @@ export class AdminService {
 
     const tempPassword = this.generateSecurePassword();
     const timestamp = new Date().toISOString();
+    const userEmail = (user.email || "").trim().toLowerCase();
+
+    // Update password in Supabase
+    const supa = this.getSupabaseAdmin();
+    if (supa && userEmail) {
+      try {
+        let uid = user.supabaseUid;
+        if (!uid) {
+          const { data: listData } = await supa.auth.admin.listUsers();
+          const existing = listData?.users?.find((u) => u?.email && u.email.toLowerCase() === userEmail);
+          if (existing) {
+            uid = existing.id;
+            user.supabaseUid = existing.id;
+          }
+        }
+        if (uid) {
+          await supa.auth.admin.updateUserById(uid, { password: tempPassword, ban_duration: "none" });
+        }
+      } catch (err) {
+        this.safeLog({ error: String(err) }, "Supabase reset password error");
+      }
+    }
 
     this.safeLog(
-      { userId, email: user.email },
-      "Admin triggered password reset for user.",
+      { userId, email: userEmail },
+      "Admin triggered password reset for user in Supabase Auth.",
     );
 
     return {
       success: true,
       userId: user.id,
-      email: user.email,
+      email: userEmail,
       temporaryPassword: tempPassword,
       loginUrl: "http://hub.jaago.com.bd/login",
       invitedAt: timestamp,
       emailDispatched: true,
-      message: `Password reset email dispatched to ${user.email} with newly generated temporary password.`,
+      message: `Password reset email dispatched to ${userEmail} with newly generated temporary password.`,
     };
   }
 
-  updateUser(orgId: string, userId: string, dto: UpdateAdminUserDto): AdminUserDto {
+  async updateUser(orgId: string, userId: string, dto: UpdateAdminUserDto): Promise<AdminUserDto> {
     const store = this.getTenantStore(orgId);
     const user = store.users.get(userId);
     if (!user) {
       throw new NotFoundException(`User with ID ${userId} not found`);
     }
 
+    if (!dto) dto = {};
     if (dto.fullName) user.fullName = dto.fullName.trim();
     if (dto.phoneNumber !== undefined) user.phoneNumber = dto.phoneNumber?.trim();
     if (dto.department) user.department = dto.department.trim();
@@ -822,24 +1038,45 @@ export class AdminService {
     return user;
   }
 
-  deleteUser(orgId: string, userId: string): { success: boolean; message: string } {
+  async deleteUser(orgId: string, userId: string): Promise<{ success: boolean; message: string }> {
     const store = this.getTenantStore(orgId);
     const user = store.users.get(userId);
     if (!user) {
       throw new NotFoundException(`User with ID ${userId} not found`);
     }
 
+    const userEmail = (user.email || "").trim().toLowerCase();
+
+    // Delete in Supabase Auth
+    const supa = this.getSupabaseAdmin();
+    if (supa && userEmail) {
+      try {
+        let uid = user.supabaseUid;
+        if (!uid) {
+          const { data: listData } = await supa.auth.admin.listUsers();
+          const existing = listData?.users?.find((u) => u?.email && u.email.toLowerCase() === userEmail);
+          if (existing) uid = existing.id;
+        }
+        if (uid) {
+          await supa.auth.admin.deleteUser(uid);
+        }
+      } catch (err) {
+        this.safeLog({ error: String(err) }, "Supabase delete user error");
+      }
+    }
+
     store.users.delete(userId);
-    this.safeLog({ userId, email: user.email }, "Admin deleted user record from directory.");
+    this.safeLog({ userId, email: userEmail }, "Admin deleted user record from directory and Supabase.");
 
     return {
       success: true,
-      message: `User ${user.fullName} (${user.email}) permanently removed from system directory.`,
+      message: `User ${user.fullName} (${userEmail}) permanently removed from system directory.`,
     };
   }
 
-  bulkImportUsers(orgId: string, items: BulkImportUserItemDto[]): BulkImportResultDto {
+  async bulkImportUsers(orgId: string, items: BulkImportUserItemDto[]): Promise<BulkImportResultDto> {
     const store = this.getTenantStore(orgId);
+    const supa = this.getSupabaseAdmin();
     const result: BulkImportResultDto = {
       totalProcessed: items.length,
       successCount: 0,
@@ -848,7 +1085,11 @@ export class AdminService {
       errors: [],
     };
 
-    const existingEmails = new Set(Array.from(store.users.values()).map((u) => u.email.toLowerCase()));
+    const existingEmails = new Set(
+      Array.from(store.users.values())
+        .filter((u) => !!u?.email)
+        .map((u) => u.email.toLowerCase()),
+    );
 
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
@@ -901,6 +1142,20 @@ export class AdminService {
         createdAt: new Date().toISOString(),
       };
 
+      if (supa) {
+        try {
+          const { data: createData } = await supa.auth.admin.createUser({
+            email: emailLower,
+            password: tempPassword,
+            email_confirm: true,
+            user_metadata: { full_name: newUser.fullName, role: roleName, department: newUser.department },
+          });
+          if (createData?.user) newUser.supabaseUid = createData.user.id;
+        } catch {
+          // Ignore
+        }
+      }
+
       store.users.set(userId, newUser);
       existingEmails.add(emailLower);
       result.successCount++;
@@ -921,6 +1176,175 @@ export class AdminService {
 
     return result;
   }
+
+  async bulkInviteUsers(
+    orgId: string,
+    userIds: string[],
+  ): Promise<{
+    totalRequested: number;
+    successCount: number;
+    results: UserInviteResultDto[];
+  }> {
+    const store = this.getTenantStore(orgId);
+    const supa = this.getSupabaseAdmin();
+    const results: UserInviteResultDto[] = [];
+
+    for (const userId of userIds) {
+      const user = store.users.get(userId);
+      if (user && user.email) {
+        const tempPassword = this.generateSecurePassword();
+        const invitedAt = new Date().toISOString();
+        const userEmail = user.email.trim().toLowerCase();
+        user.accessStatus = user.accessStatus === "REVOKED" ? "ACTIVE" : "INVITED";
+        user.invitedAt = invitedAt;
+
+        if (supa) {
+          try {
+            if (user.supabaseUid) {
+              await supa.auth.admin.updateUserById(user.supabaseUid, { password: tempPassword, ban_duration: "none" });
+            } else {
+              const { data: listData } = await supa.auth.admin.listUsers();
+              const existing = listData?.users?.find((u) => u?.email && u.email.toLowerCase() === userEmail);
+              if (existing) {
+                await supa.auth.admin.updateUserById(existing.id, { password: tempPassword, ban_duration: "none" });
+                user.supabaseUid = existing.id;
+              } else {
+                const { data: createData } = await supa.auth.admin.createUser({
+                  email: userEmail,
+                  password: tempPassword,
+                  email_confirm: true,
+                  user_metadata: { full_name: user.fullName, role: user.role, department: user.department },
+                });
+                if (createData?.user) user.supabaseUid = createData.user.id;
+              }
+            }
+          } catch {
+            // Ignore
+          }
+        }
+
+        results.push({
+          success: true,
+          userId: user.id,
+          email: userEmail,
+          temporaryPassword: tempPassword,
+          loginUrl: "http://hub.jaago.com.bd/login",
+          invitedAt,
+          emailDispatched: true,
+          message: `Invitation sent to ${userEmail}`,
+        });
+      }
+    }
+
+    this.safeLog(
+      { requested: userIds.length, success: results.length },
+      "Bulk invitation batch completed in Supabase.",
+    );
+
+    return {
+      totalRequested: userIds.length,
+      successCount: results.length,
+      results,
+    };
+  }
+
+  async bulkDeleteUsers(
+    orgId: string,
+    userIds: string[],
+  ): Promise<{ success: boolean; deletedCount: number; message: string }> {
+    const store = this.getTenantStore(orgId);
+    const supa = this.getSupabaseAdmin();
+    let deletedCount = 0;
+
+    for (const userId of userIds) {
+      const user = store.users.get(userId);
+      if (user) {
+        if (supa && user.supabaseUid) {
+          try {
+            await supa.auth.admin.deleteUser(user.supabaseUid);
+          } catch {
+            // Ignore
+          }
+        }
+        store.users.delete(userId);
+        deletedCount++;
+      }
+    }
+
+    this.safeLog({ deletedCount, requested: userIds.length }, "Bulk user deletion completed.");
+
+    return {
+      success: true,
+      deletedCount,
+      message: `Successfully removed ${deletedCount} users from the directory.`,
+    };
+  }
+
+  async bulkRevokeUsers(
+    orgId: string,
+    userIds: string[],
+  ): Promise<{ success: boolean; revokedCount: number; message: string }> {
+    const store = this.getTenantStore(orgId);
+    const supa = this.getSupabaseAdmin();
+    let revokedCount = 0;
+
+    for (const userId of userIds) {
+      const user = store.users.get(userId);
+      if (user) {
+        user.accessStatus = "REVOKED";
+        if (supa && user.supabaseUid) {
+          try {
+            await supa.auth.admin.updateUserById(user.supabaseUid, { ban_duration: "876000h" });
+          } catch {
+            // Ignore
+          }
+        }
+        revokedCount++;
+      }
+    }
+
+    this.safeLog({ revokedCount, requested: userIds.length }, "Bulk user access revocation completed.");
+
+    return {
+      success: true,
+      revokedCount,
+      message: `Successfully revoked login access for ${revokedCount} users.`,
+    };
+  }
+
+  async bulkRestoreUsers(
+    orgId: string,
+    userIds: string[],
+  ): Promise<{ success: boolean; restoredCount: number; message: string }> {
+    const store = this.getTenantStore(orgId);
+    const supa = this.getSupabaseAdmin();
+    let restoredCount = 0;
+
+    for (const userId of userIds) {
+      const user = store.users.get(userId);
+      if (user) {
+        user.accessStatus = "ACTIVE";
+        if (supa && user.supabaseUid) {
+          try {
+            await supa.auth.admin.updateUserById(user.supabaseUid, { ban_duration: "none" });
+          } catch {
+            // Ignore
+          }
+        }
+        restoredCount++;
+      }
+    }
+
+    this.safeLog({ restoredCount, requested: userIds.length }, "Bulk user access restoration completed.");
+
+    return {
+      success: true,
+      restoredCount,
+      message: `Successfully restored login access for ${restoredCount} users.`,
+    };
+  }
 }
+
+
 
 

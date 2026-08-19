@@ -158,3 +158,89 @@ export interface SystemTelemetryDto {
   };
 }
 
+// ─── System Administration: User Management DTOs ────────────────────────────
+
+export type UserAccessStatus = "ACTIVE" | "INVITED" | "REVOKED" | "PENDING";
+export type AuthProviderType = "PASSWORD" | "GOOGLE" | "SAML_SSO";
+
+export interface AdminUserDto {
+  id: string;
+  orgId: string;
+  fullName: string;
+  email: string;
+  phoneNumber?: string | undefined;
+  role: string;
+  roleId: string;
+  department: string;
+  designation?: string | undefined;
+  accessStatus: UserAccessStatus;
+  authProvider: AuthProviderType;
+  mfaEnabled: boolean;
+  supabaseUid?: string | undefined;
+  invitedAt?: string | undefined;
+  lastLoginAt?: string | undefined;
+  createdAt: string;
+}
+
+export interface CreateAdminUserDto {
+  fullName: string;
+  email: string;
+  phoneNumber?: string | undefined;
+  roleId?: string | undefined;
+  role?: string | undefined;
+  department?: string | undefined;
+  designation?: string | undefined;
+  autoInvite?: boolean | undefined;
+  customPassword?: string | undefined;
+}
+
+export interface UpdateAdminUserDto {
+  fullName?: string | undefined;
+  phoneNumber?: string | undefined;
+  roleId?: string | undefined;
+  role?: string | undefined;
+  department?: string | undefined;
+  designation?: string | undefined;
+  accessStatus?: UserAccessStatus | undefined;
+}
+
+export interface UserInviteResultDto {
+  success: boolean;
+  userId: string;
+  email: string;
+  temporaryPassword?: string | undefined;
+  loginUrl: string;
+  invitedAt: string;
+  emailDispatched: boolean;
+  message: string;
+}
+
+export interface BulkImportUserItemDto {
+  fullName: string;
+  email: string;
+  role?: string | undefined;
+  department?: string | undefined;
+  designation?: string | undefined;
+  phoneNumber?: string | undefined;
+}
+
+export interface BulkImportResultDto {
+  totalProcessed: number;
+  successCount: number;
+  failedCount: number;
+  createdUsers: {
+    id: string;
+    email: string;
+    fullName: string;
+    role: string;
+    temporaryPassword: string;
+    status: string;
+  }[];
+  errors: {
+    row: number;
+    email?: string | undefined;
+    error: string;
+  }[];
+}
+
+

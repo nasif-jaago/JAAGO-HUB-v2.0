@@ -10,31 +10,13 @@ import {
   EyeOff,
   Compass,
   Rocket,
-  ShieldCheck,
   AlertCircle,
   CheckCircle2,
-  KeyRound,
   ArrowLeft,
   Send,
 } from "lucide-react";
-import { apiClient } from "@/lib/api-client";
 import { useAuthStore } from "@/store/auth-store";
 import { createClient } from "@/lib/supabase-client";
-
-interface LoginResult {
-  user: {
-    id: string;
-    email: string;
-    displayName: string;
-    orgId: string;
-    roles: string[];
-    permissions: string[];
-    mfaEnabled: boolean;
-  };
-  accessToken?: string;
-  requiresMfa?: boolean;
-  mfaTicket?: string;
-}
 
 const ALLOWED_DOMAINS = ["jaago.com.bd", "emkcenter.org"];
 
@@ -61,8 +43,6 @@ function LoginPageContent() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
-  const [mfaTicket, setMfaTicket] = useState<string | null>(null);
-  const [mfaCode, setMfaCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -79,7 +59,7 @@ function LoginPageContent() {
       setErrorMessage(msgParam);
     } else if (errorParam === "domain_restricted") {
       setErrorMessage(
-        "Access denied. Only @jaago.com.bd and @emkcenter.org accounts are authorized."
+        "Domain restricted: Please sign in with your official @jaago.com.bd or @emkcenter.org Google account."
       );
     } else if (errorParam === "oauth_failed") {
       setErrorMessage(
@@ -144,77 +124,62 @@ function LoginPageContent() {
     }
 
     try {
-      if (mfaTicket) {
-        // Step 2: Verify TOTP MFA
-        const res = await apiClient<LoginResult>("/v1/auth/mfa/verify", {
-          method: "POST",
-          body: JSON.stringify({ mfaTicket, code: mfaCode }),
-        });
+      // Strict Supabase Password Authentication
+      const supabase = createClient();
+      const { data: supaData, error: supaError } = await supabase.auth.signInWithPassword({
+        email: emailTrimmed,
+        password: password,
+      });
 
-        setAuth(res.user, res.accessToken);
-        router.push("/");
-      } else {
-        // Step 1: Attempt Supabase Password Auth first
-        try {
-          const supabase = createClient();
-          const { data: supaData, error: supaError } = await supabase.auth.signInWithPassword({
-            email: emailTrimmed,
-            password: password,
-          });
-
-          if (!supaError && supaData?.user) {
-            setAuth(
-              {
-                id: supaData.user.id,
-                email: supaData.user.email || emailTrimmed,
-                displayName:
-                  supaData.user.user_metadata?.full_name ||
-                  supaData.user.user_metadata?.name ||
-                  emailTrimmed,
-                orgId: "00000000-0000-0000-0000-000000000000",
-                roles: ["SUPER_ADMIN"],
-                permissions: ["*"],
-                mfaEnabled: false,
-              },
-              supaData.session?.access_token
-            );
-            router.push("/");
-            return;
-          }
-        } catch {
-          // Supabase direct connection fallback
-        }
-
-        // Fallback to Backend API Login
-        try {
-          const res = await apiClient<LoginResult>("/v1/auth/login", {
-            method: "POST",
-            body: JSON.stringify({ email: emailTrimmed, password }),
-          });
-
-          if (res.requiresMfa && res.mfaTicket) {
-            setMfaTicket(res.mfaTicket);
+        if (supaError) {
+          const msg = supaError.message.toLowerCase();
+          if (msg.includes("banned") || msg.includes("suspended") || msg.includes("revoked")) {
+            setErrorMessage("Your login access has been revoked by the system administrator.");
+          } else if (msg.includes("invalid login credentials")) {
+            setErrorMessage("Invalid email or password. Please verify your credentials or use the Forgot Password option.");
+          } else if (msg.includes("email not confirmed")) {
+            setErrorMessage("Your email has not been verified yet. Please check your inbox for the confirmation link.");
           } else {
-            setAuth(res.user, res.accessToken);
-            router.push("/");
+            setErrorMessage(supaError.message || "Authentication failed.");
           }
-        } catch {
-          // Fallback login for seamless developer testing
-          setAuth(
-            {
-              id: "00000000-0000-0000-0000-000000000001",
-              email: emailTrimmed || "nasif.kamal@jaago.com.bd",
-              displayName: "Nasif Kamal | Coordinator, Tech 4 Development",
-              orgId: "00000000-0000-0000-0000-000000000000",
-              roles: ["SUPER_ADMIN"],
-              permissions: ["*"],
-              mfaEnabled: true,
-            },
-            "mock_jwt_token_development"
-          );
-          router.push("/");
+          setIsLoading(false);
+          return;
         }
-      }
+
+        if (!supaData?.user) {
+          setErrorMessage("Unable to verify user credentials with Supabase.");
+          setIsLoading(false);
+          return;
+        }
+
+        // Check if user is revoked/banned
+        const isBanned = (supaData.user as { banned_until?: string }).banned_until;
+        if (isBanned && isBanned !== "none") {
+          await supabase.auth.signOut();
+          setErrorMessage("Your account access has been revoked by the system administrator.");
+          setIsLoading(false);
+          return;
+        }
+
+        const role = (supaData.user.user_metadata?.role as string) || "Standard Employee";
+        const displayName =
+          (supaData.user.user_metadata?.full_name as string) ||
+          (supaData.user.user_metadata?.name as string) ||
+          emailTrimmed;
+
+        setAuth(
+          {
+            id: supaData.user.id,
+            email: supaData.user.email || emailTrimmed,
+            displayName,
+            orgId: "00000000-0000-0000-0000-000000000000",
+            roles: [role],
+            permissions: ["*"],
+            mfaEnabled: false,
+          },
+          supaData.session?.access_token
+        );
+        router.push("/");
     } catch (err: unknown) {
       setErrorMessage(err instanceof Error ? err.message : "Authentication failed.");
     } finally {
@@ -328,96 +293,70 @@ function LoginPageContent() {
                 )}
 
                 <form onSubmit={handleLogin} className="space-y-4 text-xs">
-                  {!mfaTicket ? (
-                    <>
-                      {/* Email Input */}
-                      <div className="relative">
-                        <Mail className="absolute left-4 top-3.5 w-4 h-4 text-muted-foreground" />
-                        <input
-                          type="email"
-                          value={email}
-                          onChange={(e) => {
-                            setEmail(e.target.value);
-                            setErrorMessage(null);
-                          }}
-                          placeholder="nasif.kamal@jaago.com.bd"
-                          className="w-full pl-11 pr-4 py-3 rounded-2xl bg-[#EDF3FA] dark:bg-[#232834] border border-transparent focus:border-amber-400 text-sm font-medium text-foreground focus:outline-none transition-all"
-                          required
-                        />
-                      </div>
+                  {/* Email Input */}
+                  <div className="relative">
+                    <Mail className="absolute left-4 top-3.5 w-4 h-4 text-muted-foreground" />
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => {
+                        setEmail(e.target.value);
+                        setErrorMessage(null);
+                      }}
+                      placeholder="nasif.kamal@jaago.com.bd"
+                      className="w-full pl-11 pr-4 py-3 rounded-2xl bg-[#EDF3FA] dark:bg-[#232834] border border-transparent focus:border-amber-400 text-sm font-medium text-foreground focus:outline-none transition-all"
+                      required
+                    />
+                  </div>
 
-                      {/* Password Input */}
-                      <div className="relative">
-                        <Lock className="absolute left-4 top-3.5 w-4 h-4 text-muted-foreground" />
-                        <input
-                          type={showPassword ? "text" : "password"}
-                          value={password}
-                          onChange={(e) => {
-                            setPassword(e.target.value);
-                            setErrorMessage(null);
-                          }}
-                          placeholder="••••••••••••"
-                          className="w-full pl-11 pr-11 py-3 rounded-2xl bg-[#EDF3FA] dark:bg-[#232834] border border-transparent focus:border-amber-400 text-sm font-medium text-foreground focus:outline-none transition-all"
-                          required
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword(!showPassword)}
-                          className="absolute right-4 top-3.5 text-muted-foreground hover:text-foreground"
-                        >
-                          {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                        </button>
-                      </div>
+                  {/* Password Input */}
+                  <div className="relative">
+                    <Lock className="absolute left-4 top-3.5 w-4 h-4 text-muted-foreground" />
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => {
+                        setPassword(e.target.value);
+                        setErrorMessage(null);
+                      }}
+                      placeholder="••••••••••••"
+                      className="w-full pl-11 pr-11 py-3 rounded-2xl bg-[#EDF3FA] dark:bg-[#232834] border border-transparent focus:border-amber-400 text-sm font-medium text-foreground focus:outline-none transition-all"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-4 top-3.5 text-muted-foreground hover:text-foreground"
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
 
-                      {/* Remember & Forgot Password */}
-                      <div className="flex items-center justify-between font-semibold pt-1">
-                        <label className="flex items-center gap-2 cursor-pointer select-none text-muted-foreground">
-                          <input
-                            type="checkbox"
-                            checked={rememberMe}
-                            onChange={(e) => setRememberMe(e.target.checked)}
-                            className="w-4 h-4 rounded text-amber-500 accent-amber-500"
-                          />
-                          <span>Remember</span>
-                        </label>
+                  {/* Remember & Forgot Password */}
+                  <div className="flex items-center justify-between font-semibold pt-1">
+                    <label className="flex items-center gap-2 cursor-pointer select-none text-muted-foreground">
+                      <input
+                        type="checkbox"
+                        checked={rememberMe}
+                        onChange={(e) => setRememberMe(e.target.checked)}
+                        className="w-4 h-4 rounded text-amber-500 accent-amber-500"
+                      />
+                      <span>Remember</span>
+                    </label>
 
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setForgotEmail(email);
-                            setIsForgotPassword(true);
-                            setErrorMessage(null);
-                            setForgotSuccessMsg(null);
-                          }}
-                          className="text-amber-500 hover:text-amber-600 font-bold transition-colors"
-                        >
-                          Forgot?
-                        </button>
-                      </div>
-                    </>
-                  ) : (
-                    <div className="space-y-3 p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30">
-                      <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 font-bold">
-                        <ShieldCheck className="w-4 h-4" />
-                        <span>Two-Factor Authentication Required</span>
-                      </div>
-                      <p className="text-muted-foreground">
-                        Enter the 6-digit TOTP code from your authenticator app.
-                      </p>
-                      <div className="relative">
-                        <KeyRound className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
-                        <input
-                          type="text"
-                          value={mfaCode}
-                          onChange={(e) => setMfaCode(e.target.value)}
-                          placeholder="123456"
-                          maxLength={6}
-                          className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-secondary/60 border border-border/40 text-sm font-mono text-center tracking-widest text-foreground focus:outline-none focus:border-amber-400"
-                          required
-                        />
-                      </div>
-                    </div>
-                  )}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setForgotEmail(email);
+                        setIsForgotPassword(true);
+                        setErrorMessage(null);
+                        setForgotSuccessMsg(null);
+                      }}
+                      className="text-amber-500 hover:text-amber-600 font-bold transition-colors"
+                    >
+                      Forgot?
+                    </button>
+                  </div>
 
                   {/* Sign In Button */}
                   <button
@@ -425,7 +364,7 @@ function LoginPageContent() {
                     disabled={isLoading}
                     className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-[#FBBF24] via-[#F59E0B] to-[#D97706] text-black font-extrabold text-xs uppercase tracking-wider shadow-lg shadow-amber-500/20 hover:brightness-105 active:scale-[0.99] transition-all disabled:opacity-60"
                   >
-                    {isLoading ? "Signing in..." : mfaTicket ? "Verify & Proceed" : "SIGN IN NOW"}
+                    {isLoading ? "Signing in..." : "SIGN IN NOW"}
                   </button>
                 </form>
 

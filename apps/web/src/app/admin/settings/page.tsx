@@ -182,7 +182,7 @@ function AdminSettingsContent() {
       queryClient.invalidateQueries({ queryKey: ["admin-attendance-config"] });
       notify("success", "Attendance & Geofence policies saved successfully!");
     },
-    onError: (err) => notify("error", err.message),
+    onError: (err: any) => notify("error", err?.message || "Failed to save attendance policies"),
   });
 
   const updateBranchGeofenceMutation = useMutation({
@@ -194,9 +194,9 @@ function AdminSettingsContent() {
     onSuccess: (updated) => {
       queryClient.invalidateQueries({ queryKey: ["admin-attendance-config"] });
       setEditingBranch(null);
-      notify("success", `Geofence & Biometric config for '${updated.branchName}' updated!`);
+      notify("success", `Geofence & Biometric config for '${updated?.branchName || "branch"}' updated!`);
     },
-    onError: (err) => notify("error", err.message),
+    onError: (err: any) => notify("error", err?.message || "Failed to update branch geofence"),
   });
 
   const addBranchGeofenceMutation = useMutation({
@@ -217,9 +217,9 @@ function AdminSettingsContent() {
         biometricDeviceIp: "",
         isActive: true,
       });
-      notify("success", `Branch boundary for '${created.branchName}' added!`);
+      notify("success", `Branch boundary for '${created?.branchName || "branch"}' added!`);
     },
-    onError: (err) => notify("error", err.message),
+    onError: (err: any) => notify("error", err?.message || "Failed to add branch"),
   });
 
   // Save role permissions
@@ -231,11 +231,11 @@ function AdminSettingsContent() {
       }),
     onSuccess: (updatedRole) => {
       queryClient.setQueryData<Role[]>(["admin-roles"], (old = []) =>
-        old.map((r) => (r.id === updatedRole.id ? updatedRole : r)),
+        old.map((r) => (r.id === updatedRole?.id ? updatedRole : r)),
       );
-      notify("success", `Role '${updatedRole.name}' permissions updated and live in backend!`);
+      notify("success", `Role '${updatedRole?.name || "Role"}' permissions updated and live in backend!`);
     },
-    onError: (err) => notify("error", err.message),
+    onError: (err: any) => notify("error", err?.message || "Failed to update role permissions"),
   });
 
   // Create custom role
@@ -247,14 +247,14 @@ function AdminSettingsContent() {
       }),
     onSuccess: (newRole) => {
       queryClient.invalidateQueries({ queryKey: ["admin-roles"] });
-      setSelectedRoleId(newRole.id);
+      if (newRole?.id) setSelectedRoleId(newRole.id);
       setShowCreateRole(false);
       setNewRoleName("");
       setNewRoleCode("");
       setNewRoleDesc("");
-      notify("success", `Custom role '${newRole.name}' created successfully!`);
+      notify("success", `Custom role '${newRole?.name || "Role"}' created successfully!`);
     },
-    onError: (err) => notify("error", err.message),
+    onError: (err: any) => notify("error", err?.message || "Failed to create role"),
   });
 
   // Delete custom role
@@ -268,7 +268,7 @@ function AdminSettingsContent() {
       setSelectedRoleId("r_admin");
       notify("success", "Role removed successfully.");
     },
-    onError: (err) => notify("error", err.message),
+    onError: (err: any) => notify("error", err?.message || "Failed to delete role"),
   });
 
   // Update SMTP
@@ -283,7 +283,7 @@ function AdminSettingsContent() {
       queryClient.invalidateQueries({ queryKey: ["admin-smtp"] });
       notify("success", "Email server (SMTP) configuration saved and active!");
     },
-    onError: (err) => notify("error", err.message),
+    onError: (err: any) => notify("error", err?.message || "Failed to save SMTP configuration"),
   });
 
   // Send Test Email
@@ -293,8 +293,8 @@ function AdminSettingsContent() {
         method: "POST",
         body: JSON.stringify({ recipientEmail }),
       }),
-    onSuccess: (res) => notify("success", res.message),
-    onError: (err) => notify("error", err.message),
+    onSuccess: (res) => notify("success", res?.message || "Test email dispatched successfully!"),
+    onError: (err: any) => notify("error", err?.message || "Failed to dispatch test email"),
   });
 
   // Generate API Token
@@ -310,7 +310,7 @@ function AdminSettingsContent() {
       setNewTokenName("");
       notify("success", "API Token generated successfully! Copy secret key now.");
     },
-    onError: (err) => notify("error", err.message),
+    onError: (err: any) => notify("error", err?.message || "Failed to generate token"),
   });
 
   // Revoke API Token
@@ -323,7 +323,7 @@ function AdminSettingsContent() {
       queryClient.invalidateQueries({ queryKey: ["admin-api-tokens"] });
       notify("success", "API token revoked immediately.");
     },
-    onError: (err) => notify("error", err.message),
+    onError: (err: any) => notify("error", err?.message || "Failed to revoke token"),
   });
 
   // ─── Active Role Data ──────────────────────────────────────────────────────
@@ -528,15 +528,42 @@ function AdminSettingsContent() {
       {activeTab === "smtp" && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="glass-card p-6 rounded-2xl lg:col-span-2 space-y-5">
-            <h3 className="font-semibold text-base text-foreground">Outgoing SMTP Mail Server</h3>
-            <p className="text-xs text-muted-foreground">
-              Configure JAAGO Foundation SMTP credentials (e.g. SendGrid, Mailgun, Amazon SES, Google Workspace).
-            </p>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-border/40">
+              <div>
+                <h3 className="font-semibold text-base text-foreground flex items-center gap-2">
+                  Outgoing SMTP Mail Server
+                  <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 font-mono">
+                    Supabase & Brevo Integrated
+                  </span>
+                </h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Configure JAAGO Foundation SMTP relay credentials (e.g. Brevo, SendGrid, Amazon SES, Google Workspace).
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setSmtpForm({
+                    host: "smtp-relay.brevo.com",
+                    port: 587,
+                    secure: false,
+                    username: "korvi@jaago.com.bd",
+                    fromName: "JAAGO HUB v2.0",
+                    fromEmail: "noreply@jaago.com.bd",
+                    replyToEmail: "support@jaago.com.bd",
+                  });
+                  notify("success", "Filled with Supabase Brevo SMTP defaults!");
+                }}
+                className="px-3 py-1 text-xs rounded-lg border border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20 transition-all shrink-0 font-medium"
+              >
+                Use Supabase Relay Preset
+              </button>
+            </div>
 
             <form
               onSubmit={(e) => {
                 e.preventDefault();
-                const current = smtpConfig || { host: "", port: 587, secure: false, username: "", fromName: "", fromEmail: "" };
+                const current = smtpConfig || { host: "smtp-relay.brevo.com", port: 587, secure: false, username: "korvi@jaago.com.bd", fromName: "JAAGO HUB v2.0", fromEmail: "noreply@jaago.com.bd" };
                 updateSmtpMutation.mutate({
                   host: smtpForm.host ?? current.host,
                   port: Number(smtpForm.port ?? current.port),
@@ -548,16 +575,16 @@ function AdminSettingsContent() {
                   replyToEmail: smtpForm.replyToEmail ?? current.replyToEmail,
                 });
               }}
-              className="space-y-4 pt-2"
+              className="space-y-4 pt-1"
             >
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="sm:col-span-2 space-y-1.5">
                   <label className="text-xs font-medium text-muted-foreground">SMTP Host / Server</label>
                   <input
                     type="text"
-                    defaultValue={smtpConfig?.host}
+                    value={smtpForm.host !== undefined ? smtpForm.host : (smtpConfig?.host || "")}
                     onChange={(e) => setSmtpForm({ ...smtpForm, host: e.target.value })}
-                    placeholder="smtp.sendgrid.net"
+                    placeholder="smtp-relay.brevo.com"
                     className="w-full px-3 py-2 rounded-lg bg-secondary/50 border border-border/40 text-sm text-foreground focus:outline-none focus:border-primary"
                     required
                   />
@@ -567,7 +594,7 @@ function AdminSettingsContent() {
                   <label className="text-xs font-medium text-muted-foreground">Port</label>
                   <input
                     type="number"
-                    defaultValue={smtpConfig?.port || 587}
+                    value={smtpForm.port !== undefined ? smtpForm.port : (smtpConfig?.port || 587)}
                     onChange={(e) => setSmtpForm({ ...smtpForm, port: Number(e.target.value) })}
                     className="w-full px-3 py-2 rounded-lg bg-secondary/50 border border-border/40 text-sm text-foreground focus:outline-none focus:border-primary"
                     required
@@ -580,19 +607,19 @@ function AdminSettingsContent() {
                   <label className="text-xs font-medium text-muted-foreground">SMTP Username / API Key</label>
                   <input
                     type="text"
-                    defaultValue={smtpConfig?.username}
+                    value={smtpForm.username !== undefined ? smtpForm.username : (smtpConfig?.username || "")}
                     onChange={(e) => setSmtpForm({ ...smtpForm, username: e.target.value })}
-                    placeholder="apikey or user@domain.com"
+                    placeholder="korvi@jaago.com.bd"
                     className="w-full px-3 py-2 rounded-lg bg-secondary/50 border border-border/40 text-sm text-foreground focus:outline-none focus:border-primary"
                     required
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-muted-foreground">SMTP Password</label>
+                  <label className="text-xs font-medium text-muted-foreground">SMTP Password / Master Key</label>
                   <input
                     type="password"
-                    defaultValue={smtpConfig?.password}
+                    value={smtpForm.password !== undefined ? smtpForm.password : (smtpConfig?.password || "")}
                     onChange={(e) => setSmtpForm({ ...smtpForm, password: e.target.value })}
                     placeholder="••••••••••••••••"
                     className="w-full px-3 py-2 rounded-lg bg-secondary/50 border border-border/40 text-sm text-foreground focus:outline-none focus:border-primary"
@@ -605,9 +632,9 @@ function AdminSettingsContent() {
                   <label className="text-xs font-medium text-muted-foreground">Sender Display Name</label>
                   <input
                     type="text"
-                    defaultValue={smtpConfig?.fromName}
+                    value={smtpForm.fromName !== undefined ? smtpForm.fromName : (smtpConfig?.fromName || "")}
                     onChange={(e) => setSmtpForm({ ...smtpForm, fromName: e.target.value })}
-                    placeholder="JAAGO Foundation ERP"
+                    placeholder="JAAGO HUB v2.0"
                     className="w-full px-3 py-2 rounded-lg bg-secondary/50 border border-border/40 text-sm text-foreground focus:outline-none focus:border-primary"
                     required
                   />
@@ -617,9 +644,9 @@ function AdminSettingsContent() {
                   <label className="text-xs font-medium text-muted-foreground">Sender From Email</label>
                   <input
                     type="email"
-                    defaultValue={smtpConfig?.fromEmail}
+                    value={smtpForm.fromEmail !== undefined ? smtpForm.fromEmail : (smtpConfig?.fromEmail || "")}
                     onChange={(e) => setSmtpForm({ ...smtpForm, fromEmail: e.target.value })}
-                    placeholder="notifications@jaago.com.bd"
+                    placeholder="noreply@jaago.com.bd"
                     className="w-full px-3 py-2 rounded-lg bg-secondary/50 border border-border/40 text-sm text-foreground focus:outline-none focus:border-primary"
                     required
                   />
