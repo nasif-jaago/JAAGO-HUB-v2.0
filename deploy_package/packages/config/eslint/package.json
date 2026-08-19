@@ -1,0 +1,20 @@
+{
+  "name": "@jaago/config-eslint",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Shared ESLint configuration for JAAGO ERP",
+  "exports": {
+    "./base": "./base.js",
+    "./next": "./next.js",
+    "./nestjs": "./nestjs.js"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^8.38.0",
+    "@typescript-eslint/parser": "^8.38.0",
+    "eslint": "^9.31.0",
+    "eslint-config-next": "^15.4.1",
+    "eslint-plugin-import": "^2.31.0",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^5.2.0"
+  }
+}

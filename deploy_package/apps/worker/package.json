@@ -1,0 +1,37 @@
+{
+  "name": "@jaago/worker",
+  "version": "0.0.1",
+  "private": true,
+  "description": "JAAGO ERP Background Worker — BullMQ consumers and cron jobs",
+  "scripts": {
+    "dev": "tsx watch src/main.ts",
+    "build": "tsc",
+    "start": "node dist/main.js",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src --ext .ts",
+    "test:unit": "vitest run --reporter=verbose",
+    "clean": "rimraf dist"
+  },
+  "dependencies": {
+    "@jaago/cache": "workspace:*",
+    "@jaago/database": "workspace:*",
+    "@jaago/events": "workspace:*",
+    "@jaago/integrations": "workspace:*",
+    "@jaago/logger": "workspace:*",
+    "@jaago/queue": "workspace:*",
+    "@jaago/security": "workspace:*",
+    "@jaago/shared-types": "workspace:*",
+    "@supabase/supabase-js": "^2.50.5",
+    "bullmq": "^5.56.0",
+    "ioredis": "^5.6.1"
+  },
+  "devDependencies": {
+    "@jaago/config-typescript": "workspace:*",
+    "@types/node": "^22.15.32",
+    "ioredis-mock": "^8.9.0",
+    "rimraf": "^6.0.1",
+    "tsx": "^4.19.4",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
+  }
+}

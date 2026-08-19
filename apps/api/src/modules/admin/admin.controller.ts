@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Put,
+  Patch,
   Delete,
   Body,
   Param,
@@ -28,6 +29,12 @@ import type {
   TriggerSnapshotDto,
   PitrRestoreTestResultDto,
   SystemTelemetryDto,
+  AdminUserDto,
+  CreateAdminUserDto,
+  UpdateAdminUserDto,
+  UserInviteResultDto,
+  BulkImportUserItemDto,
+  BulkImportResultDto,
 } from "./dto/admin.dto.js";
 
 @ApiTags("Admin Settings & RBAC")
@@ -220,5 +227,119 @@ export class AdminController {
   getSystemTelemetry(): SystemTelemetryDto {
     return this.adminService.getSystemTelemetry();
   }
+
+  // ─── System Administration: User Management Endpoints ──────────────────────
+
+  @Public()
+  @Get("users")
+  @ApiOperation({ summary: "List all users in the system with login access status" })
+  getUsers(
+    @Req() req: { tenant?: { orgId?: string }; headers?: Record<string, string> },
+  ): AdminUserDto[] {
+    const orgId = this.resolveOrgId(req);
+    return this.adminService.getUsers(orgId);
+  }
+
+  @Public()
+  @Get("users/:id")
+  @ApiOperation({ summary: "Get single user details by ID" })
+  getUserById(
+    @Req() req: { tenant?: { orgId?: string }; headers?: Record<string, string> },
+    @Param("id") id: string,
+  ): AdminUserDto {
+    const orgId = this.resolveOrgId(req);
+    return this.adminService.getUserById(orgId, id);
+  }
+
+  @Public()
+  @Post("users")
+  @ApiOperation({ summary: "Create a new user and optionally dispatch invite email with temp password" })
+  createUser(
+    @Req() req: { tenant?: { orgId?: string }; headers?: Record<string, string> },
+    @Body() dto: CreateAdminUserDto,
+  ): { user: AdminUserDto; inviteResult?: UserInviteResultDto | undefined } {
+    const orgId = this.resolveOrgId(req);
+    return this.adminService.createUser(orgId, dto);
+  }
+
+  @Public()
+  @Post("users/:id/invite")
+  @ApiOperation({ summary: "Dispatch invitation email with login link and temporary credentials" })
+  inviteUser(
+    @Req() req: { tenant?: { orgId?: string }; headers?: Record<string, string> },
+    @Param("id") id: string,
+  ): UserInviteResultDto {
+    const orgId = this.resolveOrgId(req);
+    return this.adminService.inviteUser(orgId, id);
+  }
+
+  @Public()
+  @Patch("users/:id/revoke")
+  @ApiOperation({ summary: "Revoke user login access and invalidate active sessions" })
+  revokeUserAccess(
+    @Req() req: { tenant?: { orgId?: string }; headers?: Record<string, string> },
+    @Param("id") id: string,
+  ): { success: boolean; user: AdminUserDto; message: string } {
+    const orgId = this.resolveOrgId(req);
+    return this.adminService.revokeUserAccess(orgId, id);
+  }
+
+  @Public()
+  @Patch("users/:id/restore")
+  @ApiOperation({ summary: "Restore user login access" })
+  restoreUserAccess(
+    @Req() req: { tenant?: { orgId?: string }; headers?: Record<string, string> },
+    @Param("id") id: string,
+  ): { success: boolean; user: AdminUserDto; message: string } {
+    const orgId = this.resolveOrgId(req);
+    return this.adminService.restoreUserAccess(orgId, id);
+  }
+
+  @Public()
+  @Post("users/:id/reset-password")
+  @ApiOperation({ summary: "Reset password, generate new credentials and send email" })
+  resetUserPassword(
+    @Req() req: { tenant?: { orgId?: string }; headers?: Record<string, string> },
+    @Param("id") id: string,
+  ): UserInviteResultDto {
+    const orgId = this.resolveOrgId(req);
+    return this.adminService.resetUserPassword(orgId, id);
+  }
+
+  @Public()
+  @Put("users/:id")
+  @ApiOperation({ summary: "Update user profile, role, or department" })
+  updateUser(
+    @Req() req: { tenant?: { orgId?: string }; headers?: Record<string, string> },
+    @Param("id") id: string,
+    @Body() dto: UpdateAdminUserDto,
+  ): AdminUserDto {
+    const orgId = this.resolveOrgId(req);
+    return this.adminService.updateUser(orgId, id, dto);
+  }
+
+  @Public()
+  @Delete("users/:id")
+  @ApiOperation({ summary: "Permanently remove user from system directory" })
+  deleteUser(
+    @Req() req: { tenant?: { orgId?: string }; headers?: Record<string, string> },
+    @Param("id") id: string,
+  ): { success: boolean; message: string } {
+    const orgId = this.resolveOrgId(req);
+    return this.adminService.deleteUser(orgId, id);
+  }
+
+  @Public()
+  @Post("users/import")
+  @ApiOperation({ summary: "Bulk import users from CSV/JSON payload" })
+  bulkImportUsers(
+    @Req() req: { tenant?: { orgId?: string }; headers?: Record<string, string> },
+    @Body() body: { users: BulkImportUserItemDto[] },
+  ): BulkImportResultDto {
+    const orgId = this.resolveOrgId(req);
+    const users = Array.isArray(body.users) ? body.users : [];
+    return this.adminService.bulkImportUsers(orgId, users);
+  }
 }
+
 

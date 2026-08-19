@@ -1,0 +1,31 @@
+{
+  "name": "@jaago/database",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Drizzle ORM schema, repository base, query helpers, and tenant isolation for JAAGO ERP",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./schema": "./src/schema/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src --ext .ts",
+    "test:unit": "vitest run --reporter=verbose",
+    "clean": "rimraf dist"
+  },
+  "dependencies": {
+    "@jaago/shared-types": "workspace:*",
+    "drizzle-orm": "^0.39.3",
+    "postgres": "^3.4.5"
+  },
+  "devDependencies": {
+    "@jaago/config-typescript": "workspace:*",
+    "@types/node": "^22.15.32",
+    "drizzle-kit": "^0.30.4",
+    "rimraf": "^6.0.1",
+    "typescript": "^5.8.3",
+    "vitest": "^3.2.4"
+  }
+}

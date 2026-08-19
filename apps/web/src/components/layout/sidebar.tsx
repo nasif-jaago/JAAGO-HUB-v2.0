@@ -95,6 +95,7 @@ export function Sidebar() {
 
   const adminObservabilitySubItems = [
     { name: "Observability Telemetry", href: "/admin/observability", icon: Activity },
+    { name: "Users & Access Control", href: "/admin/users", icon: Users },
     { name: "RBAC & Role Matrix", href: "/admin/settings?tab=rbac", icon: ShieldCheck },
     { name: "Email Server (SMTP)", href: "/admin/settings?tab=smtp", icon: Mail },
     { name: "Attendance & Geofencing", href: "/admin/settings?tab=attendance", icon: MapPin },

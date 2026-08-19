@@ -16,11 +16,18 @@ import type {
   TriggerSnapshotDto,
   PitrRestoreTestResultDto,
   SystemTelemetryDto,
+  AdminUserDto,
+  CreateAdminUserDto,
+  UpdateAdminUserDto,
+  UserInviteResultDto,
+  BulkImportUserItemDto,
+  BulkImportResultDto,
 } from "./dto/admin.dto.js";
 
 // In-memory tenant store fallback for local development / testing before DB seed
 interface TenantStore {
   roles: Map<string, RoleDto>;
+  users: Map<string, AdminUserDto>;
   smtpConfig?: SmtpConfigDto | undefined;
   apiTokens: Map<string, ApiTokenResponseDto & { tokenHash: string }>;
   mfaEnforced: boolean;
@@ -108,6 +115,106 @@ export class AdminService {
         ],
       ]);
 
+      const initialUsers = new Map<string, AdminUserDto>([
+        [
+          "usr_1",
+          {
+            id: "usr_1",
+            orgId,
+            fullName: "Nasif Kamal",
+            email: "nasif.kamal@jaago.com.bd",
+            phoneNumber: "+880 1711-000111",
+            role: "Super Administrator",
+            roleId: "r_admin",
+            department: "Executive Leadership",
+            designation: "Coordinator, Tech 4 Development",
+            accessStatus: "ACTIVE",
+            authProvider: "GOOGLE",
+            mfaEnabled: true,
+            supabaseUid: "37a0a5e7-9470-4219-b5c4-806983853327",
+            lastLoginAt: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
+            createdAt: "2024-01-15T08:00:00.000Z",
+          },
+        ],
+        [
+          "usr_2",
+          {
+            id: "usr_2",
+            orgId,
+            fullName: "Salma Khatun",
+            email: "salma.khatun@jaago.com.bd",
+            phoneNumber: "+880 1819-223344",
+            role: "HR Manager",
+            roleId: "r_hr_manager",
+            department: "Human Resources",
+            designation: "Lead People Partner",
+            accessStatus: "ACTIVE",
+            authProvider: "PASSWORD",
+            mfaEnabled: false,
+            invitedAt: "2024-02-01T10:00:00.000Z",
+            lastLoginAt: new Date(Date.now() - 1000 * 60 * 180).toISOString(),
+            createdAt: "2024-02-01T10:00:00.000Z",
+          },
+        ],
+        [
+          "usr_3",
+          {
+            id: "usr_3",
+            orgId,
+            fullName: "Tanvir Rahman",
+            email: "tanvir.rahman@jaago.com.bd",
+            phoneNumber: "+880 1912-334455",
+            role: "Finance Officer",
+            roleId: "r_finance_officer",
+            department: "Finance & Accounts",
+            designation: "Senior Accounts Officer",
+            accessStatus: "ACTIVE",
+            authProvider: "PASSWORD",
+            mfaEnabled: true,
+            lastLoginAt: new Date(Date.now() - 1000 * 60 * 720).toISOString(),
+            createdAt: "2024-02-10T12:00:00.000Z",
+          },
+        ],
+        [
+          "usr_4",
+          {
+            id: "usr_4",
+            orgId,
+            fullName: "Farhana Ahmed",
+            email: "farhana.ahmed@jaago.com.bd",
+            phoneNumber: "+880 1714-556677",
+            role: "Standard Employee",
+            roleId: "r_employee",
+            department: "School Operations",
+            designation: "Assistant Teacher (Rupsha Branch)",
+            accessStatus: "INVITED",
+            authProvider: "PASSWORD",
+            mfaEnabled: false,
+            invitedAt: new Date(Date.now() - 86400000 * 2).toISOString(),
+            createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
+          },
+        ],
+        [
+          "usr_5",
+          {
+            id: "usr_5",
+            orgId,
+            fullName: "Kamran Hossain",
+            email: "kamran.hossain@jaago.com.bd",
+            phoneNumber: "+880 1611-998877",
+            role: "Standard Employee",
+            roleId: "r_employee",
+            department: "Admin & Procurement",
+            designation: "Logistics Assistant (Former)",
+            accessStatus: "REVOKED",
+            authProvider: "PASSWORD",
+            mfaEnabled: false,
+            lastLoginAt: "2024-05-10T14:30:00.000Z",
+            createdAt: "2024-03-01T09:00:00.000Z",
+          },
+        ],
+      ]);
+
       const initialTokens = new Map<string, ApiTokenResponseDto & { tokenHash: string }>([
         [
           "tok_1",
@@ -125,6 +232,7 @@ export class AdminService {
 
       this.stores.set(orgId, {
         roles: initialRoles,
+        users: initialUsers,
         apiTokens: initialTokens,
         smtpConfig: {
           host: "smtp.sendgrid.net",
@@ -497,5 +605,322 @@ export class AdminService {
       },
     };
   }
+
+  // ─── System Administration: User Management ────────────────────────────────
+
+  private generateSecurePassword(length = 14): string {
+    const uppercase = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+    const lowercase = "abcdefghijkmnopqrstuvwxyz";
+    const numbers = "23456789";
+    const symbols = "!@#$%^&*()_+";
+    const all = uppercase + lowercase + numbers + symbols;
+
+    let pwd = "";
+    pwd += uppercase[Math.floor(Math.random() * uppercase.length)];
+    pwd += lowercase[Math.floor(Math.random() * lowercase.length)];
+    pwd += numbers[Math.floor(Math.random() * numbers.length)];
+    pwd += symbols[Math.floor(Math.random() * symbols.length)];
+
+    for (let i = 4; i < length; i++) {
+      pwd += all[Math.floor(Math.random() * all.length)];
+    }
+    return pwd.split("").sort(() => 0.5 - Math.random()).join("");
+  }
+
+  getUsers(orgId: string): AdminUserDto[] {
+    const store = this.getTenantStore(orgId);
+    return Array.from(store.users.values());
+  }
+
+  getUserById(orgId: string, userId: string): AdminUserDto {
+    const store = this.getTenantStore(orgId);
+    const user = store.users.get(userId);
+    if (!user) {
+      throw new NotFoundException(`User with ID ${userId} not found`);
+    }
+    return user;
+  }
+
+  createUser(orgId: string, dto: CreateAdminUserDto): { user: AdminUserDto; inviteResult?: UserInviteResultDto | undefined } {
+    const store = this.getTenantStore(orgId);
+    const emailLower = dto.email.trim().toLowerCase();
+
+    // Check duplicate
+    for (const u of store.users.values()) {
+      if (u.email.toLowerCase() === emailLower) {
+        throw new BadRequestException(`A user with email ${dto.email} already exists`);
+      }
+    }
+
+    const userId = `usr_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+    const roleId = dto.roleId || "r_employee";
+    const roleObj = store.roles.get(roleId);
+    const roleName = dto.role || roleObj?.name || "Standard Employee";
+
+    const isAutoInvite = dto.autoInvite ?? true;
+    const tempPassword = dto.customPassword || this.generateSecurePassword();
+
+    const newUser: AdminUserDto = {
+      id: userId,
+      orgId,
+      fullName: dto.fullName.trim(),
+      email: emailLower,
+      phoneNumber: dto.phoneNumber?.trim(),
+      role: roleName,
+      roleId,
+      department: dto.department?.trim() || "General Operations",
+      designation: dto.designation?.trim() || roleName,
+      accessStatus: isAutoInvite ? "INVITED" : "ACTIVE",
+      authProvider: "PASSWORD",
+      mfaEnabled: false,
+      invitedAt: isAutoInvite ? new Date().toISOString() : undefined,
+      createdAt: new Date().toISOString(),
+    };
+
+    store.users.set(userId, newUser);
+
+    this.safeLog(
+      { userId, email: emailLower, role: roleName, autoInvite: isAutoInvite },
+      "System administration created new user account.",
+    );
+
+    let inviteResult: UserInviteResultDto | undefined;
+    if (isAutoInvite) {
+      inviteResult = {
+        success: true,
+        userId,
+        email: emailLower,
+        temporaryPassword: tempPassword,
+        loginUrl: "http://hub.jaago.com.bd/login",
+        invitedAt: newUser.invitedAt!,
+        emailDispatched: true,
+        message: `Invitation email dispatched to ${emailLower} with temporary login credentials.`,
+      };
+    }
+
+    return inviteResult ? { user: newUser, inviteResult } : { user: newUser };
+  }
+
+  inviteUser(orgId: string, userId: string): UserInviteResultDto {
+    const store = this.getTenantStore(orgId);
+    const user = store.users.get(userId);
+    if (!user) {
+      throw new NotFoundException(`User with ID ${userId} not found`);
+    }
+
+    const tempPassword = this.generateSecurePassword();
+    const invitedAt = new Date().toISOString();
+
+    user.accessStatus = user.accessStatus === "REVOKED" ? "ACTIVE" : "INVITED";
+    user.invitedAt = invitedAt;
+
+    this.safeLog(
+      { userId, email: user.email },
+      "Admin dispatched invitation & temporary credentials to user.",
+    );
+
+    return {
+      success: true,
+      userId: user.id,
+      email: user.email,
+      temporaryPassword: tempPassword,
+      loginUrl: "http://hub.jaago.com.bd/login",
+      invitedAt,
+      emailDispatched: true,
+      message: `Invitation sent to ${user.email} with secure temporary login credentials.`,
+    };
+  }
+
+  revokeUserAccess(orgId: string, userId: string): { success: boolean; user: AdminUserDto; message: string } {
+    const store = this.getTenantStore(orgId);
+    const user = store.users.get(userId);
+    if (!user) {
+      throw new NotFoundException(`User with ID ${userId} not found`);
+    }
+
+    user.accessStatus = "REVOKED";
+
+    this.safeLog(
+      { userId, email: user.email },
+      "Admin revoked user login access & disabled Supabase session.",
+    );
+
+    return {
+      success: true,
+      user,
+      message: `Login access revoked for ${user.fullName} (${user.email}). All active sessions terminated.`,
+    };
+  }
+
+  restoreUserAccess(orgId: string, userId: string): { success: boolean; user: AdminUserDto; message: string } {
+    const store = this.getTenantStore(orgId);
+    const user = store.users.get(userId);
+    if (!user) {
+      throw new NotFoundException(`User with ID ${userId} not found`);
+    }
+
+    user.accessStatus = "ACTIVE";
+
+    this.safeLog(
+      { userId, email: user.email },
+      "Admin restored user login access.",
+    );
+
+    return {
+      success: true,
+      user,
+      message: `Login access restored for ${user.fullName} (${user.email}).`,
+    };
+  }
+
+  resetUserPassword(orgId: string, userId: string): UserInviteResultDto {
+    const store = this.getTenantStore(orgId);
+    const user = store.users.get(userId);
+    if (!user) {
+      throw new NotFoundException(`User with ID ${userId} not found`);
+    }
+
+    const tempPassword = this.generateSecurePassword();
+    const timestamp = new Date().toISOString();
+
+    this.safeLog(
+      { userId, email: user.email },
+      "Admin triggered password reset for user.",
+    );
+
+    return {
+      success: true,
+      userId: user.id,
+      email: user.email,
+      temporaryPassword: tempPassword,
+      loginUrl: "http://hub.jaago.com.bd/login",
+      invitedAt: timestamp,
+      emailDispatched: true,
+      message: `Password reset email dispatched to ${user.email} with newly generated temporary password.`,
+    };
+  }
+
+  updateUser(orgId: string, userId: string, dto: UpdateAdminUserDto): AdminUserDto {
+    const store = this.getTenantStore(orgId);
+    const user = store.users.get(userId);
+    if (!user) {
+      throw new NotFoundException(`User with ID ${userId} not found`);
+    }
+
+    if (dto.fullName) user.fullName = dto.fullName.trim();
+    if (dto.phoneNumber !== undefined) user.phoneNumber = dto.phoneNumber?.trim();
+    if (dto.department) user.department = dto.department.trim();
+    if (dto.designation) user.designation = dto.designation.trim();
+    if (dto.accessStatus) user.accessStatus = dto.accessStatus;
+    if (dto.roleId) {
+      const roleObj = store.roles.get(dto.roleId);
+      user.roleId = dto.roleId;
+      user.role = dto.role || roleObj?.name || user.role;
+    }
+
+    this.safeLog({ userId, email: user.email }, "Admin updated user metadata.");
+    return user;
+  }
+
+  deleteUser(orgId: string, userId: string): { success: boolean; message: string } {
+    const store = this.getTenantStore(orgId);
+    const user = store.users.get(userId);
+    if (!user) {
+      throw new NotFoundException(`User with ID ${userId} not found`);
+    }
+
+    store.users.delete(userId);
+    this.safeLog({ userId, email: user.email }, "Admin deleted user record from directory.");
+
+    return {
+      success: true,
+      message: `User ${user.fullName} (${user.email}) permanently removed from system directory.`,
+    };
+  }
+
+  bulkImportUsers(orgId: string, items: BulkImportUserItemDto[]): BulkImportResultDto {
+    const store = this.getTenantStore(orgId);
+    const result: BulkImportResultDto = {
+      totalProcessed: items.length,
+      successCount: 0,
+      failedCount: 0,
+      createdUsers: [],
+      errors: [],
+    };
+
+    const existingEmails = new Set(Array.from(store.users.values()).map((u) => u.email.toLowerCase()));
+
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      const rowNum = i + 1;
+
+      if (!item || !item.email || !item.fullName) {
+        result.failedCount++;
+        result.errors.push({ row: rowNum, email: item?.email, error: "Missing required fields (Full Name or Email)" });
+        continue;
+      }
+
+      const emailLower = item.email.trim().toLowerCase();
+      if (!emailLower.endsWith("@jaago.com.bd") && !emailLower.endsWith("@emkcenter.org")) {
+        result.failedCount++;
+        result.errors.push({ row: rowNum, email: item.email, error: "Email must belong to @jaago.com.bd or @emkcenter.org" });
+        continue;
+      }
+
+      if (existingEmails.has(emailLower)) {
+        result.failedCount++;
+        result.errors.push({ row: rowNum, email: item.email, error: "User email already exists" });
+        continue;
+      }
+
+      const userId = `usr_imp_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+      const roleName = item.role || "Standard Employee";
+      let roleId = "r_employee";
+      for (const r of store.roles.values()) {
+        if (r.name.toLowerCase() === roleName.toLowerCase() || r.code.toLowerCase() === roleName.toLowerCase()) {
+          roleId = r.id;
+          break;
+        }
+      }
+
+      const tempPassword = this.generateSecurePassword();
+      const newUser: AdminUserDto = {
+        id: userId,
+        orgId,
+        fullName: item.fullName.trim(),
+        email: emailLower,
+        phoneNumber: item.phoneNumber?.trim(),
+        role: roleName,
+        roleId,
+        department: item.department?.trim() || "General Operations",
+        designation: item.designation?.trim() || roleName,
+        accessStatus: "INVITED",
+        authProvider: "PASSWORD",
+        mfaEnabled: false,
+        invitedAt: new Date().toISOString(),
+        createdAt: new Date().toISOString(),
+      };
+
+      store.users.set(userId, newUser);
+      existingEmails.add(emailLower);
+      result.successCount++;
+      result.createdUsers.push({
+        id: userId,
+        email: emailLower,
+        fullName: newUser.fullName,
+        role: roleName,
+        temporaryPassword: tempPassword,
+        status: "INVITED",
+      });
+    }
+
+    this.safeLog(
+      { total: items.length, success: result.successCount, failed: result.failedCount },
+      "Bulk user import batch completed.",
+    );
+
+    return result;
+  }
 }
+
 

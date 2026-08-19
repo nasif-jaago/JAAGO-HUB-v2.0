@@ -1,0 +1,24 @@
+﻿{
+    "scripts":  {
+                    "test:unit":  "vitest run --passWithNoTests",
+                    "clean":  "rimraf dist",
+                    "typecheck":  "tsc --noEmit",
+                    "lint":  "eslint src --ext .ts"
+                },
+    "description":  "MCP registry and safe tool execution",
+    "devDependencies":  {
+                            "typescript":  "^5.8.3",
+                            "rimraf":  "^6.0.1",
+                            "@jaago/config-typescript":  "workspace:*",
+                            "vitest":  "^3.2.4"
+                        },
+    "types":  "./src/index.ts",
+    "version":  "0.0.1",
+    "name":  "@jaago/mcp",
+    "private":  true,
+    "exports":  {
+                    ".":  "./src/index.ts"
+                },
+    "main":  "./src/index.ts"
+}
+
