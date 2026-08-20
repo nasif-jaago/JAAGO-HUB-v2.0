@@ -199,8 +199,8 @@ fs.writeFileSync(
 );
 console.log(`   ✓ Aggregated ${Object.keys(sortedDeps).length} production dependencies into deploy_package/package.json`);
 
-// 10. Generate Production .env.example
-console.log("10. Generating production .env.example...");
+// 10. Generate Production .env and .env.example
+console.log("10. Generating and copying production .env and .env.example...");
 const envExample = `# ==============================================================================
 # JAAGO HUB v2.0 — Production Environment Configuration
 # ==============================================================================
@@ -231,6 +231,16 @@ API_INTERNAL_URL=http://127.0.0.1:3001
 CORS_ORIGIN=https://hub.jaago.com.bd
 `;
 fs.writeFileSync(path.join(deployDir, ".env.example"), envExample, "utf8");
+
+// Always ensure .env exists in deploy_package
+const rootEnvPath = path.join(rootDir, ".env");
+if (fs.existsSync(rootEnvPath)) {
+  fs.copyFileSync(rootEnvPath, path.join(deployDir, ".env"));
+  console.log("   ✓ Copied .env from root into deploy_package/.env");
+} else {
+  fs.writeFileSync(path.join(deployDir, ".env"), envExample, "utf8");
+  console.log("   ✓ Created default .env in deploy_package/.env");
+}
 
 // 11. Generate .htaccess for optional Apache/Passenger optimizations
 const htaccess = `# JAAGO HUB v2.0 — Apache / Phusion Passenger Configuration
