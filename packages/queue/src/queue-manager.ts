@@ -19,6 +19,7 @@ export class QueueManager {
     if (!queue) {
       queue = new Queue(queueName, {
         connection: this.redis as unknown as never,
+        skipVersionCheck: true,
         defaultJobOptions: {
           attempts: 3,
           backoff: {
@@ -70,6 +71,7 @@ export class QueueManager {
     const worker = new Worker<T>(queueName, processor, {
       connection: this.redis as unknown as never,
       concurrency,
+      skipVersionCheck: true,
     });
     this.workers.set(queueName, worker as unknown as Worker);
     return worker;
