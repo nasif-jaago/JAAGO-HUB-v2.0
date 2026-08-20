@@ -6,7 +6,8 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
-      "@jaago/*": ["../../packages/*/src"]
+      "@/core/*": ["../api/src/core/*"],
+      "@jaago/*": ["../api/src/core/*"]
     },
     "outDir": "dist"
   },

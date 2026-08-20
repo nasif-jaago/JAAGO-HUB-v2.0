@@ -7,7 +7,7 @@
         "./src/*"
       ],
       "@jaago/*": [
-        "../../packages/*/src"
+        "../api/src/core/*"
       ]
     },
     "isolatedModules": true

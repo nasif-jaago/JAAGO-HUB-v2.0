@@ -1,10 +1,7 @@
 packages:
   - "apps/*"
-  - "packages/*"
-  - "packages/config/*"
-  - "modules/*"
 allowBuilds:
-  '@scarf/scarf': true
+  "@scarf/scarf": true
   esbuild: true
   msgpackr-extract: true
   sharp: true

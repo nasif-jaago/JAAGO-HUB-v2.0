@@ -4,7 +4,10 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
-      "@jaago/*": ["../../packages/*/src"]
+      "@/core/*": ["./src/core/*"],
+      "@/modules/*": ["./src/modules/*"],
+      "@jaago/database/schema": ["./src/core/database/schema/index.ts"],
+      "@jaago/*": ["./src/core/*"]
     },
     "outDir": "dist"
   },
