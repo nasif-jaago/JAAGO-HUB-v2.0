@@ -36,7 +36,7 @@ Click **Run NPM Install** in cPanel (or open cPanel **Terminal**):
 ```bash
 # Enter the virtual environment indicated at the top of your cPanel app screen:
 source /home/username/nodevenv/jaagohub/22/bin/activate
-pnpm install --prod # or npm install --omit=dev
+npm install --omit=dev  # or pnpm install --prod
 
 # Run database migrations:
 node scripts/migrate-production.mjs

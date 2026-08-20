@@ -124,30 +124,70 @@ if (fs.existsSync(migrationScript)) {
   console.log("8. Copied standalone database migration runner.");
 }
 
-// 9. Generate Production package.json
-console.log("9. Generating production package.json for cPanel Node.js App Manager...");
+// 9. Collect and Aggregate all production dependencies from all workspace apps & packages
+console.log("9. Collecting and aggregating all production dependencies for cPanel...");
 const rootPkg = JSON.parse(fs.readFileSync(path.join(rootDir, "package.json"), "utf8"));
+const aggregatedDeps = {};
+
+function collectDependenciesFrom(dirPath) {
+  if (!fs.existsSync(dirPath)) return;
+  for (const item of fs.readdirSync(dirPath)) {
+    const pkgJsonPath = path.join(dirPath, item, "package.json");
+    if (fs.existsSync(pkgJsonPath)) {
+      try {
+        const rawContent = fs.readFileSync(pkgJsonPath, "utf8").replace(/^\uFEFF/, "");
+        const pkgData = JSON.parse(rawContent);
+        if (pkgData.dependencies) {
+          for (const [dep, version] of Object.entries(pkgData.dependencies)) {
+            // Exclude workspace:* packages
+            if (version.startsWith("workspace:") || dep.startsWith("@jaago/")) {
+              continue;
+            }
+            aggregatedDeps[dep] = version;
+          }
+        }
+      } catch (err) {
+        console.warn(`Could not read ${pkgJsonPath}:`, err.message);
+      }
+    }
+  }
+}
+
+collectDependenciesFrom(path.join(rootDir, "apps"));
+collectDependenciesFrom(path.join(rootDir, "packages"));
+collectDependenciesFrom(path.join(rootDir, "modules"));
+
+if (rootPkg.dependencies) {
+  for (const [dep, version] of Object.entries(rootPkg.dependencies)) {
+    if (!version.startsWith("workspace:") && !dep.startsWith("@jaago/")) {
+      aggregatedDeps[dep] = version;
+    }
+  }
+}
+
+// Sort dependencies alphabetically
+const sortedDeps = Object.keys(aggregatedDeps)
+  .sort()
+  .reduce((acc, key) => {
+    acc[key] = aggregatedDeps[key];
+    return acc;
+  }, {});
 
 const productionPkg = {
   name: rootPkg.name || "jaago-erp",
   version: rootPkg.version || "2.0.0",
   private: true,
-  description: "JAAGO HUB v2.0 — Production Server Deployment Package",
+  description: "JAAGO HUB v2.0 — Production Server Deployment Package (All Subsystems Aggregated)",
   main: "index.js",
   scripts: {
     start: "node index.js",
     migrate: "node scripts/migrate-production.mjs",
     health: "node -e \"const http=require('http'); http.get('http://127.0.0.1:'+(process.env.PORT||3000)+'/health', res => { console.log('HTTP', res.statusCode); process.exit(res.statusCode===200?0:1); });\"",
   },
-  dependencies: {
-    ...rootPkg.dependencies,
-    postgres: "^3.4.5",
-  },
-  devDependencies: {
-    ...(rootPkg.devDependencies?.turbo ? { turbo: rootPkg.devDependencies.turbo } : {}),
-  },
+  dependencies: sortedDeps,
   engines: rootPkg.engines || {
     node: ">=20.0.0",
+    npm: ">=9.0.0",
     pnpm: ">=9.0.0",
   },
 };
@@ -157,6 +197,7 @@ fs.writeFileSync(
   JSON.stringify(productionPkg, null, 2),
   "utf8"
 );
+console.log(`   ✓ Aggregated ${Object.keys(sortedDeps).length} production dependencies into deploy_package/package.json`);
 
 // 10. Generate Production .env.example
 console.log("10. Generating production .env.example...");
@@ -245,7 +286,7 @@ Click **Run NPM Install** in cPanel (or open cPanel **Terminal**):
 \`\`\`bash
 # Enter the virtual environment indicated at the top of your cPanel app screen:
 source /home/username/nodevenv/jaagohub/22/bin/activate
-pnpm install --prod # or npm install --omit=dev
+npm install --omit=dev  # or pnpm install --prod
 
 # Run database migrations:
 node scripts/migrate-production.mjs
@@ -261,7 +302,7 @@ Verify by visiting:
 `;
 fs.writeFileSync(path.join(deployDir, "README.md"), readme, "utf8");
 
-// 13. Create deploy_package.zip if possible
+// 13. Create deploy_package.zip
 console.log("13. Compressing deploy package to deploy_package.zip...");
 try {
   if (process.platform === "win32") {
