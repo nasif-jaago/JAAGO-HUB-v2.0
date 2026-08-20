@@ -4,7 +4,7 @@
   "private": true,
   "description": "JAAGO ERP Background Worker — BullMQ consumers and cron jobs (Direct Internal Modules)",
   "scripts": {
-    "dev": "tsx watch src/main.ts",
+    "dev": "tsx watch --tsconfig tsconfig.json src/main.ts",
     "build": "tsc",
     "start": "node dist/main.js",
     "typecheck": "tsc --noEmit",
