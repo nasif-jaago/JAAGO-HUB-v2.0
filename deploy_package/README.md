@@ -1,38 +1,51 @@
 # JAAGO HUB v2.0 — Production Deployment Package
 
-## Quick Start (on server)
+This package contains everything required to deploy **JAAGO HUB v2.0** on **cPanel Node.js App Manager** or any Linux server without Docker.
 
+---
+
+## 🚀 Quick Start on cPanel (5 Steps)
+
+### Step 1: Upload Files
+Upload `deploy_package.zip` to your server directory (e.g. `/home/username/jaagohub`) via cPanel **File Manager** and extract it.
+
+### Step 2: Configure cPanel Node.js App Manager
+1. Open cPanel > **Setup Node.js App** > **Create Application**.
+2. Set:
+   - **Node.js version**: 20.x or 22.x
+   - **Application mode**: Production
+   - **Application root**: `jaagohub` (or your folder name)
+   - **Application startup file**: `index.js`
+3. Click **Create**.
+
+### Step 3: Set Environment Variables
+In the cPanel Node.js App Manager screen, under **Environment variables**, add:
+- `DATABASE_URL` = Your PostgreSQL connection string
+- `SUPABASE_URL` = Your Supabase project URL
+- `SUPABASE_ANON_KEY` = Your Supabase anon key
+- `SUPABASE_SERVICE_ROLE_KEY` = Your Supabase service role key
+- `REDIS_URL` = `redis://127.0.0.1:6379` (or managed Redis URL)
+- `ENCRYPTION_KEK` = 32-character encryption key
+- `JWT_SECRET` = Your JWT secret
+- `NEXT_PUBLIC_APP_URL` = `https://yourdomain.com`
+- `NEXT_PUBLIC_API_URL` = `https://yourdomain.com/api`
+- `API_INTERNAL_URL` = `http://127.0.0.1:3001`
+
+### Step 4: Install Dependencies & Run Migrations
+Click **Run NPM Install** in cPanel (or open cPanel **Terminal**):
 ```bash
-# 1. Install dependencies
-pnpm install
+# Enter the virtual environment indicated at the top of your cPanel app screen:
+source /home/username/nodevenv/jaagohub/22/bin/activate
+pnpm install --prod # or npm install --omit=dev
 
-# 2. Start all services
-NODE_ENV=production node index.js
+# Run database migrations:
+node scripts/migrate-production.mjs
 ```
 
-## Services
+### Step 5: Start / Restart Application
+Click **Restart Application** in cPanel.
 
-| Service | Port | Description |
-|---------|------|-------------|
-| Web     | 3000 (or $PORT) | Next.js Frontend |
-| API     | 3001 (or $API_PORT) | NestJS Backend |
-| Worker  | N/A  | BullMQ Background Jobs |
-
-## Environment Variables
-
-Set these in your .env files or CPanel environment settings:
-- PORT (Web port, default: 3000)
-- API_PORT (API port, default: 3001)
-- DATABASE_URL
-- SUPABASE_URL
-- SUPABASE_SERVICE_ROLE_KEY
-- REDIS_URL
-- ENCRYPTION_KEK
-
-## Files
-
-- `index.js` — Main startup file (point CPanel here)
-- `api-resolve-hook.js` — Module resolver for NestJS API
-- `apps/web/.next/` — Compiled Next.js frontend
-- `apps/api/dist/` — Compiled NestJS API
-- `apps/worker/src/` — Worker TypeScript source (runs via tsx)
+Verify by visiting:
+- Frontend: `https://yourdomain.com`
+- Health check: `https://yourdomain.com/health`
+- API documentation: `https://yourdomain.com/api/docs`

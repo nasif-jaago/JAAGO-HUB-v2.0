@@ -1,0 +1,25 @@
+{
+  "extends": "../../packages/config/typescript/nextjs.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ],
+      "@jaago/*": [
+        "../../packages/*/src"
+      ]
+    },
+    "isolatedModules": true
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    "next-env.d.ts",
+    ".next-dev/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}

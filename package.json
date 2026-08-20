@@ -1,33 +1,48 @@
 {
   "name": "jaago-erp",
-  "version": "0.0.1",
+  "version": "2.0.0",
   "private": true,
   "packageManager": "pnpm@11.22.0",
-  "description": "JAAGO Foundation ERP v2.0 — JAAGO HUB",
+  "description": "JAAGO Foundation ERP v2.0 — JAAGO HUB (Production cPanel & Node.js Architecture)",
   "engines": {
-    "node": ">=22.0.0",
-    "pnpm": ">=11.0.0"
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
   },
   "scripts": {
-    "dev": "turbo run dev",
-    "build": "turbo run build",
-    "test": "turbo run test",
-    "test:unit": "turbo run test:unit",
-    "test:integration": "turbo run test:integration",
-    "typecheck": "turbo run typecheck",
-    "lint": "turbo run lint",
-    "lint:fix": "turbo run lint:fix",
+    "start": "node index.js",
+    "dev": "pnpm --parallel --filter @jaago/web --filter @jaago/api --filter @jaago/worker run dev",
+    "dev:web": "pnpm --filter @jaago/web run dev",
+    "dev:api": "pnpm --filter @jaago/api run dev",
+    "dev:worker": "pnpm --filter @jaago/worker run dev",
+    "build": "pnpm -r --stream run build && node scripts/create-deploy-package.mjs",
+    "build:prod": "pnpm -r --stream run build && node scripts/create-deploy-package.mjs",
+    "build:deploy": "pnpm -r --stream run build && node scripts/create-deploy-package.mjs",
+    "deploy:package": "node scripts/create-deploy-package.mjs",
+    "build:web": "pnpm --filter @jaago/web run build",
+    "build:api": "pnpm --filter @jaago/api run build",
+    "build:worker": "pnpm --filter @jaago/worker run build",
+    "db:migrate": "node scripts/migrate-production.mjs",
+    "test": "pnpm -r --stream run test:unit && vitest run tests/deployment",
+    "test:unit": "pnpm -r --stream run test:unit",
+    "test:integration": "pnpm -r --stream run test:integration",
+    "test:deployment": "vitest run tests/deployment",
+    "test:all": "pnpm -r --stream run test:unit && vitest run tests/deployment",
+    "typecheck": "pnpm -r --stream run typecheck",
+    "lint": "pnpm -r --stream run lint",
+    "lint:fix": "pnpm -r --stream run lint:fix",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,css}\" --ignore-path .gitignore",
-    "clean": "turbo run clean && rimraf node_modules",
+    "clean": "pnpm -r --stream run clean && rimraf node_modules deploy_package",
     "seed": "pnpm --filter @jaago/database seed",
     "create-module": "tsx scripts/create-module.ts"
   },
   "dependencies": {
+    "postgres": "^3.4.5",
     "tsx": "^4.19.4"
   },
   "devDependencies": {
-    "turbo": "latest",
     "prettier": "^3.5.3",
-    "rimraf": "^6.0.1"
+    "rimraf": "^6.0.1",
+    "turbo": "latest",
+    "vitest": "^3.2.4"
   }
 }

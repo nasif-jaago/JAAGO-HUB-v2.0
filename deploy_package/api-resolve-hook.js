@@ -1,17 +1,8 @@
 /**
- * Custom module resolution hook for running the NestJS API from its compiled dist/.
+ * JAAGO HUB v2.0 — Production Module Resolution Hook
  *
- * Problem: `nest build` compiles the API + workspace packages into apps/api/dist/,
- * but the compiled code still does `require("@jaago/logger")` which resolves via
- * node_modules symlinks to the raw TypeScript source (which Node.js can't run).
- *
- * Additionally, when loading compiled packages from dist/, their own dependencies
- * (like 'pino' for @jaago/logger) can't be found because pnpm's strict resolution
- * only allows resolution from the original package location.
- *
- * Solution: This hook:
- * 1. Redirects @jaago/* imports to compiled JS in dist/packages/
- * 2. When resolution fails from dist/, retries from the original package location
+ * Resolves @jaago/* workspace packages and their dependencies when running
+ * compiled JavaScript from dist/ on production servers (cPanel / VPS).
  */
 
 "use strict";
@@ -21,60 +12,87 @@ const path = require("path");
 const fs = require("fs");
 
 const ROOT_DIR = path.resolve(__dirname);
-const DIST_ROOT = path.join(ROOT_DIR, "apps", "api", "dist");
+const DIST_API_ROOT = path.join(ROOT_DIR, "apps", "api", "dist");
 const PACKAGES_ROOT = path.join(ROOT_DIR, "packages");
 
-// Map of @jaago/* package names to their compiled locations in dist/
+// Map of @jaago/* package names to their compiled or source index files
 const PACKAGE_MAP = {};
 
-// Auto-discover packages from dist/packages/
-const distPkgDir = path.join(DIST_ROOT, "packages");
+// 1. Auto-discover from apps/api/dist/packages/
+const distPkgDir = path.join(DIST_API_ROOT, "packages");
 if (fs.existsSync(distPkgDir)) {
   for (const name of fs.readdirSync(distPkgDir)) {
-    const indexPath = path.join(distPkgDir, name, "src", "index.js");
-    if (fs.existsSync(indexPath)) {
-      PACKAGE_MAP[`@jaago/${name}`] = indexPath;
+    const candidates = [
+      path.join(distPkgDir, name, "src", "index.js"),
+      path.join(distPkgDir, name, "index.js"),
+      path.join(distPkgDir, name, "dist", "index.js"),
+    ];
+    for (const cand of candidates) {
+      if (fs.existsSync(cand)) {
+        PACKAGE_MAP[`@jaago/${name}`] = cand;
+        break;
+      }
     }
   }
 }
 
-// Monkey-patch Module._resolveFilename to intercept @jaago/* lookups
+// 2. Discover from packages/* for any packages not in dist/
+if (fs.existsSync(PACKAGES_ROOT)) {
+  for (const name of fs.readdirSync(PACKAGES_ROOT)) {
+    if (!PACKAGE_MAP[`@jaago/${name}`]) {
+      const candidates = [
+        path.join(PACKAGES_ROOT, name, "dist", "index.js"),
+        path.join(PACKAGES_ROOT, name, "src", "index.js"),
+        path.join(PACKAGES_ROOT, name, "index.js"),
+      ];
+      for (const cand of candidates) {
+        if (fs.existsSync(cand)) {
+          PACKAGE_MAP[`@jaago/${name}`] = cand;
+          break;
+        }
+      }
+    }
+  }
+}
+
+// Hook into Module._resolveFilename
 const originalResolveFilename = Module._resolveFilename;
 Module._resolveFilename = function (request, parent, isMain, options) {
-  // 1. Redirect @jaago/* to compiled dist versions
+  // 1. Direct workspace package match
   if (PACKAGE_MAP[request]) {
     return PACKAGE_MAP[request];
   }
 
-  // Check subpath imports (e.g., "@jaago/logger/something")
+  // 2. Subpath imports (e.g. "@jaago/database/schema")
   for (const [pkg, pkgPath] of Object.entries(PACKAGE_MAP)) {
     if (request.startsWith(pkg + "/")) {
       const subpath = request.slice(pkg.length + 1);
-      const resolved = path.join(path.dirname(pkgPath), "..", subpath);
-      try {
-        return originalResolveFilename.call(this, resolved, parent, isMain, options);
-      } catch (_) {
-        // Fall through
+      const candidates = [
+        path.join(path.dirname(pkgPath), `${subpath}.js`),
+        path.join(path.dirname(pkgPath), subpath, "index.js"),
+        path.join(path.dirname(pkgPath), "..", `${subpath}.js`),
+        path.join(path.dirname(pkgPath), "..", subpath, "index.js"),
+      ];
+      for (const cand of candidates) {
+        if (fs.existsSync(cand)) {
+          return cand;
+        }
       }
     }
   }
 
-  // 2. If the requiring file is inside dist/packages/, and resolution fails,
-  //    retry from the original package source location (for pnpm symlinked deps)
+  // 3. Fallback resolution for pnpm / npm symlinked dependencies
   try {
     return originalResolveFilename.call(this, request, parent, isMain, options);
   } catch (err) {
     if (parent && parent.filename && parent.filename.includes(path.join("dist", "packages"))) {
-      // Extract the package name from the dist path
-      // e.g., .../dist/packages/logger/src/logger.js → logger
-      const distPkgsPrefix = path.join(DIST_ROOT, "packages") + path.sep;
+      const distPkgsPrefix = path.join(DIST_API_ROOT, "packages") + path.sep;
       if (parent.filename.startsWith(distPkgsPrefix)) {
         const relative = parent.filename.slice(distPkgsPrefix.length);
         const pkgName = relative.split(path.sep)[0];
         const originalPkgDir = path.join(PACKAGES_ROOT, pkgName);
 
         if (fs.existsSync(originalPkgDir)) {
-          // Create a fake parent pointing to the original package location
           const fakeParent = Object.create(parent);
           fakeParent.filename = path.join(originalPkgDir, "src", "index.ts");
           fakeParent.paths = Module._nodeModulePaths(originalPkgDir);
@@ -82,7 +100,7 @@ Module._resolveFilename = function (request, parent, isMain, options) {
           try {
             return originalResolveFilename.call(this, request, fakeParent, isMain, options);
           } catch (_) {
-            // Fall through to original error
+            // Fall through
           }
         }
       }
@@ -91,3 +109,5 @@ Module._resolveFilename = function (request, parent, isMain, options) {
     throw err;
   }
 };
+
+module.exports = { PACKAGE_MAP };

@@ -15,7 +15,7 @@ import {
   ArrowDownRight,
 } from "lucide-react";
 import { apiClient } from "@/lib/api-client";
-import { usePCOrganization } from "../layout";
+import { usePCOrganization } from "../pc-context";
 
 interface PCDashboardStats {
   totalEmployees: number;

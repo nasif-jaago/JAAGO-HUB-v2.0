@@ -1,10 +1,13 @@
-import fs from 'node:fs';
-import path from 'node:path';
+import fs from "node:fs";
+import path from "node:path";
+import { execSync } from "node:child_process";
 
 const rootDir = process.cwd();
-const deployDir = path.join(rootDir, 'deploy_package');
+const deployDir = path.join(rootDir, "deploy_package");
 
-// Clean existing
+console.log("🚀 Preparing production cPanel deploy package...");
+
+// Clean existing deploy_package directory
 if (fs.existsSync(deployDir)) {
   fs.rmSync(deployDir, { recursive: true, force: true });
 }
@@ -16,7 +19,17 @@ function copyRecursive(src, dest) {
   if (stats.isDirectory()) {
     fs.mkdirSync(dest, { recursive: true });
     for (const file of fs.readdirSync(src)) {
-      if (file === 'node_modules' || file === '.turbo' || file === '.git' || file === 'cache') continue;
+      if (
+        file === "node_modules" ||
+        file === ".turbo" ||
+        file === ".git" ||
+        file === "cache" ||
+        file === ".next-dev" ||
+        file === "coverage" ||
+        file.endsWith(".tsbuildinfo")
+      ) {
+        continue;
+      }
       copyRecursive(path.join(src, file), path.join(dest, file));
     }
   } else {
@@ -24,11 +37,16 @@ function copyRecursive(src, dest) {
   }
 }
 
-console.log('1. Copying root configuration files...');
+// 1. Root configuration & startup entrypoints
+console.log("1. Copying root configuration, launcher, and entrypoint files...");
 const rootFiles = [
-  'package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', 'turbo.json',
-  'index.js', 'api-resolve-hook.js',
-  '.env', '.env.local', '.env.production',
+  "pnpm-lock.yaml",
+  "pnpm-workspace.yaml",
+  "turbo.json",
+  "index.js",
+  "api-resolve-hook.js",
+  "tsconfig.json",
+  ".npmrc",
 ];
 for (const file of rootFiles) {
   const src = path.join(rootDir, file);
@@ -38,83 +56,229 @@ for (const file of rootFiles) {
   }
 }
 
-console.log('2. Copying packages/ (source for workspace packages)...');
-copyRecursive(path.join(rootDir, 'packages'), path.join(deployDir, 'packages'));
+// 2. Packages (shared libraries & utilities)
+console.log("2. Copying packages/ (shared workspace libraries)...");
+copyRecursive(path.join(rootDir, "packages"), path.join(deployDir, "packages"));
 
-console.log('3. Copying apps/api/ (compiled dist + package.json)...');
-fs.mkdirSync(path.join(deployDir, 'apps', 'api'), { recursive: true });
-copyRecursive(path.join(rootDir, 'apps', 'api', 'dist'), path.join(deployDir, 'apps', 'api', 'dist'));
-copyRecursive(path.join(rootDir, 'apps', 'api', 'src'), path.join(deployDir, 'apps', 'api', 'src'));
-fs.copyFileSync(path.join(rootDir, 'apps', 'api', 'package.json'), path.join(deployDir, 'apps', 'api', 'package.json'));
-if (fs.existsSync(path.join(rootDir, 'apps', 'api', '.env'))) {
-  fs.copyFileSync(path.join(rootDir, 'apps', 'api', '.env'), path.join(deployDir, 'apps', 'api', '.env'));
+// 3. Modules (domain modules)
+if (fs.existsSync(path.join(rootDir, "modules"))) {
+  console.log("3. Copying modules/ (domain modules)...");
+  copyRecursive(path.join(rootDir, "modules"), path.join(deployDir, "modules"));
 }
 
-console.log('4. Copying apps/web/ (.next build + public + config)...');
-fs.mkdirSync(path.join(deployDir, 'apps', 'web'), { recursive: true });
-copyRecursive(path.join(rootDir, 'apps', 'web', '.next'), path.join(deployDir, 'apps', 'web', '.next'));
-if (fs.existsSync(path.join(rootDir, 'apps', 'web', 'public'))) {
-  copyRecursive(path.join(rootDir, 'apps', 'web', 'public'), path.join(deployDir, 'apps', 'web', 'public'));
-}
-fs.copyFileSync(path.join(rootDir, 'apps', 'web', 'package.json'), path.join(deployDir, 'apps', 'web', 'package.json'));
-if (fs.existsSync(path.join(rootDir, 'apps', 'web', 'next.config.mjs'))) {
-  fs.copyFileSync(path.join(rootDir, 'apps', 'web', 'next.config.mjs'), path.join(deployDir, 'apps', 'web', 'next.config.mjs'));
-}
-
-console.log('5. Copying apps/worker/ (source + dist + package.json)...');
-fs.mkdirSync(path.join(deployDir, 'apps', 'worker'), { recursive: true });
-copyRecursive(path.join(rootDir, 'apps', 'worker', 'dist'), path.join(deployDir, 'apps', 'worker', 'dist'));
-copyRecursive(path.join(rootDir, 'apps', 'worker', 'src'), path.join(deployDir, 'apps', 'worker', 'src'));
-fs.copyFileSync(path.join(rootDir, 'apps', 'worker', 'package.json'), path.join(deployDir, 'apps', 'worker', 'package.json'));
-if (fs.existsSync(path.join(rootDir, 'apps', 'worker', 'tsconfig.json'))) {
-  fs.copyFileSync(path.join(rootDir, 'apps', 'worker', 'tsconfig.json'), path.join(deployDir, 'apps', 'worker', 'tsconfig.json'));
-}
-if (fs.existsSync(path.join(rootDir, 'apps', 'worker', '.env'))) {
-  fs.copyFileSync(path.join(rootDir, 'apps', 'worker', '.env'), path.join(deployDir, 'apps', 'worker', '.env'));
+// 4. API App (NestJS / Fastify backend)
+console.log("4. Copying apps/api/ (compiled dist + source + config)...");
+fs.mkdirSync(path.join(deployDir, "apps", "api"), { recursive: true });
+copyRecursive(path.join(rootDir, "apps", "api", "dist"), path.join(deployDir, "apps", "api", "dist"));
+copyRecursive(path.join(rootDir, "apps", "api", "src"), path.join(deployDir, "apps", "api", "src"));
+for (const file of ["package.json", "tsconfig.json", "nest-cli.json"]) {
+  const src = path.join(rootDir, "apps", "api", file);
+  if (fs.existsSync(src)) {
+    fs.copyFileSync(src, path.join(deployDir, "apps", "api", file));
+  }
 }
 
-// Create README for deployment
+// 5. Web App (Next.js frontend)
+console.log("5. Copying apps/web/ (.next production build + public + config)...");
+fs.mkdirSync(path.join(deployDir, "apps", "web"), { recursive: true });
+copyRecursive(path.join(rootDir, "apps", "web", ".next"), path.join(deployDir, "apps", "web", ".next"));
+if (fs.existsSync(path.join(rootDir, "apps", "web", "public"))) {
+  copyRecursive(path.join(rootDir, "apps", "web", "public"), path.join(deployDir, "apps", "web", "public"));
+}
+for (const file of [
+  "package.json",
+  "next.config.mjs",
+  "tsconfig.json",
+  "tailwind.config.ts",
+  "postcss.config.mjs",
+]) {
+  const src = path.join(rootDir, "apps", "web", file);
+  if (fs.existsSync(src)) {
+    fs.copyFileSync(src, path.join(deployDir, "apps", "web", file));
+  }
+}
+
+// 6. Worker App (BullMQ background worker)
+console.log("6. Copying apps/worker/ (compiled dist + source + config)...");
+fs.mkdirSync(path.join(deployDir, "apps", "worker"), { recursive: true });
+copyRecursive(path.join(rootDir, "apps", "worker", "dist"), path.join(deployDir, "apps", "worker", "dist"));
+copyRecursive(path.join(rootDir, "apps", "worker", "src"), path.join(deployDir, "apps", "worker", "src"));
+for (const file of ["package.json", "tsconfig.json"]) {
+  const src = path.join(rootDir, "apps", "worker", file);
+  if (fs.existsSync(src)) {
+    fs.copyFileSync(src, path.join(deployDir, "apps", "worker", file));
+  }
+}
+
+// 7. Supabase / Database migrations & seeds
+if (fs.existsSync(path.join(rootDir, "supabase"))) {
+  console.log("7. Copying supabase/ (database migrations, seeds, configs)...");
+  copyRecursive(path.join(rootDir, "supabase"), path.join(deployDir, "supabase"));
+}
+
+// 8. Copy Migration Runner Script
+fs.mkdirSync(path.join(deployDir, "scripts"), { recursive: true });
+const migrationScript = path.join(rootDir, "scripts", "migrate-production.mjs");
+if (fs.existsSync(migrationScript)) {
+  fs.copyFileSync(migrationScript, path.join(deployDir, "scripts", "migrate-production.mjs"));
+  console.log("8. Copied standalone database migration runner.");
+}
+
+// 9. Generate Production package.json
+console.log("9. Generating production package.json for cPanel Node.js App Manager...");
+const rootPkg = JSON.parse(fs.readFileSync(path.join(rootDir, "package.json"), "utf8"));
+
+const productionPkg = {
+  name: rootPkg.name || "jaago-erp",
+  version: rootPkg.version || "2.0.0",
+  private: true,
+  description: "JAAGO HUB v2.0 — Production Server Deployment Package",
+  main: "index.js",
+  scripts: {
+    start: "node index.js",
+    migrate: "node scripts/migrate-production.mjs",
+    health: "node -e \"const http=require('http'); http.get('http://127.0.0.1:'+(process.env.PORT||3000)+'/health', res => { console.log('HTTP', res.statusCode); process.exit(res.statusCode===200?0:1); });\"",
+  },
+  dependencies: {
+    ...rootPkg.dependencies,
+    postgres: "^3.4.5",
+  },
+  devDependencies: {
+    ...(rootPkg.devDependencies?.turbo ? { turbo: rootPkg.devDependencies.turbo } : {}),
+  },
+  engines: rootPkg.engines || {
+    node: ">=20.0.0",
+    pnpm: ">=9.0.0",
+  },
+};
+
+fs.writeFileSync(
+  path.join(deployDir, "package.json"),
+  JSON.stringify(productionPkg, null, 2),
+  "utf8"
+);
+
+// 10. Generate Production .env.example
+console.log("10. Generating production .env.example...");
+const envExample = `# ==============================================================================
+# JAAGO HUB v2.0 — Production Environment Configuration
+# ==============================================================================
+# Configure these variables in your cPanel "Setup Node.js App" Environment Variables
+# or in this .env file located at the application root.
+
+NODE_ENV=production
+PORT=3000
+API_PORT=3001
+
+# --- PostgreSQL / Supabase Database ---
+DATABASE_URL=postgresql://user:password@host:5432/jaago_erp
+SUPABASE_URL=https://your-project-ref.supabase.co
+SUPABASE_ANON_KEY=eyJhbGciOi...
+SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOi...
+
+# --- Redis (Queues, Locks, Caching) ---
+REDIS_URL=redis://127.0.0.1:6379
+
+# --- Security & Cryptography ---
+JWT_SECRET=super_secure_jwt_secret_change_me_in_production
+ENCRYPTION_KEK=32_character_min_encryption_master_key_jaago_2026
+
+# --- URLs & Reverse Proxy ---
+NEXT_PUBLIC_APP_URL=https://hub.jaago.com.bd
+NEXT_PUBLIC_API_URL=https://hub.jaago.com.bd/api
+API_INTERNAL_URL=http://127.0.0.1:3001
+CORS_ORIGIN=https://hub.jaago.com.bd
+`;
+fs.writeFileSync(path.join(deployDir, ".env.example"), envExample, "utf8");
+
+// 11. Generate .htaccess for optional Apache/Passenger optimizations
+const htaccess = `# JAAGO HUB v2.0 — Apache / Phusion Passenger Configuration
+<IfModule mod_passenger.c>
+  PassengerAppRoot "/"
+  PassengerAppType node
+  PassengerStartupFile index.js
+</IfModule>
+
+# Optional Gzip & Cache headers for Next.js static assets
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css text/javascript application/javascript application/json
+</IfModule>
+`;
+fs.writeFileSync(path.join(deployDir, ".htaccess"), htaccess, "utf8");
+
+// 12. Create README and Deployment Runbook
 const readme = `# JAAGO HUB v2.0 — Production Deployment Package
 
-## Quick Start (on server)
+This package contains everything required to deploy **JAAGO HUB v2.0** on **cPanel Node.js App Manager** or any Linux server without Docker.
 
+---
+
+## 🚀 Quick Start on cPanel (5 Steps)
+
+### Step 1: Upload Files
+Upload \`deploy_package.zip\` to your server directory (e.g. \`/home/username/jaagohub\`) via cPanel **File Manager** and extract it.
+
+### Step 2: Configure cPanel Node.js App Manager
+1. Open cPanel > **Setup Node.js App** > **Create Application**.
+2. Set:
+   - **Node.js version**: 20.x or 22.x
+   - **Application mode**: Production
+   - **Application root**: \`jaagohub\` (or your folder name)
+   - **Application startup file**: \`index.js\`
+3. Click **Create**.
+
+### Step 3: Set Environment Variables
+In the cPanel Node.js App Manager screen, under **Environment variables**, add:
+- \`DATABASE_URL\` = Your PostgreSQL connection string
+- \`SUPABASE_URL\` = Your Supabase project URL
+- \`SUPABASE_ANON_KEY\` = Your Supabase anon key
+- \`SUPABASE_SERVICE_ROLE_KEY\` = Your Supabase service role key
+- \`REDIS_URL\` = \`redis://127.0.0.1:6379\` (or managed Redis URL)
+- \`ENCRYPTION_KEK\` = 32-character encryption key
+- \`JWT_SECRET\` = Your JWT secret
+- \`NEXT_PUBLIC_APP_URL\` = \`https://yourdomain.com\`
+- \`NEXT_PUBLIC_API_URL\` = \`https://yourdomain.com/api\`
+- \`API_INTERNAL_URL\` = \`http://127.0.0.1:3001\`
+
+### Step 4: Install Dependencies & Run Migrations
+Click **Run NPM Install** in cPanel (or open cPanel **Terminal**):
 \`\`\`bash
-# 1. Install dependencies
-pnpm install
+# Enter the virtual environment indicated at the top of your cPanel app screen:
+source /home/username/nodevenv/jaagohub/22/bin/activate
+pnpm install --prod # or npm install --omit=dev
 
-# 2. Start all services
-NODE_ENV=production node index.js
+# Run database migrations:
+node scripts/migrate-production.mjs
 \`\`\`
 
-## Services
+### Step 5: Start / Restart Application
+Click **Restart Application** in cPanel.
 
-| Service | Port | Description |
-|---------|------|-------------|
-| Web     | 3000 (or $PORT) | Next.js Frontend |
-| API     | 3001 (or $API_PORT) | NestJS Backend |
-| Worker  | N/A  | BullMQ Background Jobs |
-
-## Environment Variables
-
-Set these in your .env files or CPanel environment settings:
-- PORT (Web port, default: 3000)
-- API_PORT (API port, default: 3001)
-- DATABASE_URL
-- SUPABASE_URL
-- SUPABASE_SERVICE_ROLE_KEY
-- REDIS_URL
-- ENCRYPTION_KEK
-
-## Files
-
-- \`index.js\` — Main startup file (point CPanel here)
-- \`api-resolve-hook.js\` — Module resolver for NestJS API
-- \`apps/web/.next/\` — Compiled Next.js frontend
-- \`apps/api/dist/\` — Compiled NestJS API
-- \`apps/worker/src/\` — Worker TypeScript source (runs via tsx)
+Verify by visiting:
+- Frontend: \`https://yourdomain.com\`
+- Health check: \`https://yourdomain.com/health\`
+- API documentation: \`https://yourdomain.com/api/docs\`
 `;
+fs.writeFileSync(path.join(deployDir, "README.md"), readme, "utf8");
 
-fs.writeFileSync(path.join(deployDir, 'README.md'), readme, 'utf8');
+// 13. Create deploy_package.zip if possible
+console.log("13. Compressing deploy package to deploy_package.zip...");
+try {
+  if (process.platform === "win32") {
+    const zipPath = path.join(rootDir, "deploy_package.zip");
+    if (fs.existsSync(zipPath)) fs.unlinkSync(zipPath);
+    execSync(
+      `powershell -Command "Compress-Archive -Path '${deployDir}/*' -DestinationPath '${zipPath}' -Force"`,
+      { stdio: "ignore" }
+    );
+    console.log("   ✓ Generated deploy_package.zip");
+  } else {
+    execSync(`zip -r deploy_package.zip deploy_package`, { stdio: "ignore" });
+    console.log("   ✓ Generated deploy_package.zip");
+  }
+} catch (_) {
+  console.log("   (Note: Zip command skipped, deploy_package directory is fully available)");
+}
 
-console.log('');
-console.log('✅ Deploy package assembled at:', deployDir);
+console.log("\n✅ Production deployment package successfully generated at:");
+console.log(`   ${deployDir}`);

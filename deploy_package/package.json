@@ -1,33 +1,23 @@
 {
   "name": "jaago-erp",
-  "version": "0.0.1",
+  "version": "2.0.0",
   "private": true,
-  "packageManager": "pnpm@11.22.0",
-  "description": "JAAGO Foundation ERP v2.0 — JAAGO HUB",
-  "engines": {
-    "node": ">=22.0.0",
-    "pnpm": ">=11.0.0"
-  },
+  "description": "JAAGO HUB v2.0 — Production Server Deployment Package",
+  "main": "index.js",
   "scripts": {
-    "dev": "turbo run dev",
-    "build": "turbo run build",
-    "test": "turbo run test",
-    "test:unit": "turbo run test:unit",
-    "test:integration": "turbo run test:integration",
-    "typecheck": "turbo run typecheck",
-    "lint": "turbo run lint",
-    "lint:fix": "turbo run lint:fix",
-    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,css}\" --ignore-path .gitignore",
-    "clean": "turbo run clean && rimraf node_modules",
-    "seed": "pnpm --filter @jaago/database seed",
-    "create-module": "tsx scripts/create-module.ts"
+    "start": "node index.js",
+    "migrate": "node scripts/migrate-production.mjs",
+    "health": "node -e \"const http=require('http'); http.get('http://127.0.0.1:'+(process.env.PORT||3000)+'/health', res => { console.log('HTTP', res.statusCode); process.exit(res.statusCode===200?0:1); });\""
   },
   "dependencies": {
+    "postgres": "^3.4.5",
     "tsx": "^4.19.4"
   },
   "devDependencies": {
-    "turbo": "latest",
-    "prettier": "^3.5.3",
-    "rimraf": "^6.0.1"
+    "turbo": "latest"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
   }
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, createContext, useContext } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -35,18 +35,7 @@ import {
   Timer,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-interface PCContextType {
-  selectedOrg: string;
-  setSelectedOrg: (org: string) => void;
-}
-
-const PCContext = createContext<PCContextType>({
-  selectedOrg: "ALL",
-  setSelectedOrg: () => {},
-});
-
-export const usePCOrganization = () => useContext(PCContext);
+import { PCContext } from "./pc-context";
 
 export default function PeopleCultureLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
