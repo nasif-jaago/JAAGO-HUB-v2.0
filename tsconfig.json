@@ -1,5 +1,38 @@
 {
   "$schema": "https://json.schemastore.org/tsconfig",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@jaago/testing": ["./packages/testing/src/index.ts", "./packages/testing/src"],
+      "@jaago/testing/*": ["./packages/testing/src/*"],
+      "@jaago/validation": ["./packages/validation/src/index.ts", "./packages/validation/src"],
+      "@jaago/validation/*": ["./packages/validation/src/*"],
+      "@jaago/shared-types": ["./packages/shared-types/src/index.ts", "./packages/shared-types/src"],
+      "@jaago/shared-types/*": ["./packages/shared-types/src/*"],
+      "@jaago/database": ["./packages/database/src/index.ts", "./packages/database/src"],
+      "@jaago/database/*": ["./packages/database/src/*"],
+      "@jaago/auth": ["./packages/auth/src/index.ts", "./packages/auth/src"],
+      "@jaago/auth/*": ["./packages/auth/src/*"],
+      "@jaago/cache": ["./packages/cache/src/index.ts", "./packages/cache/src"],
+      "@jaago/cache/*": ["./packages/cache/src/*"],
+      "@jaago/logger": ["./packages/logger/src/index.ts", "./packages/logger/src"],
+      "@jaago/logger/*": ["./packages/logger/src/*"],
+      "@jaago/observability": ["./packages/observability/src/index.ts", "./packages/observability/src"],
+      "@jaago/observability/*": ["./packages/observability/src/*"],
+      "@jaago/security": ["./packages/security/src/index.ts", "./packages/security/src"],
+      "@jaago/security/*": ["./packages/security/src/*"],
+      "@jaago/queue": ["./packages/queue/src/index.ts", "./packages/queue/src"],
+      "@jaago/queue/*": ["./packages/queue/src/*"],
+      "@jaago/events": ["./packages/events/src/index.ts", "./packages/events/src"],
+      "@jaago/events/*": ["./packages/events/src/*"],
+      "@jaago/integrations": ["./packages/integrations/src/index.ts", "./packages/integrations/src"],
+      "@jaago/integrations/*": ["./packages/integrations/src/*"],
+      "@jaago/mcp": ["./packages/mcp/src/index.ts", "./packages/mcp/src"],
+      "@jaago/mcp/*": ["./packages/mcp/src/*"],
+      "@jaago/api-client": ["./packages/api-client/src/index.ts", "./packages/api-client/src"],
+      "@jaago/api-client/*": ["./packages/api-client/src/*"]
+    }
+  },
   "files": [],
   "references": [
     { "path": "./apps/web" },
